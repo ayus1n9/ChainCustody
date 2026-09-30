@@ -16,7 +16,10 @@ if (PRIVATE_KEY) {
 module.exports = {
   solidity: {
     version: "0.8.24",
-    settings: { optimizer: { enabled: true, runs: 200 } },
+    settings: {
+      optimizer: { enabled: true, runs: 200 },
+      viaIR: true,
+    },
   },
   networks,
   gasReporter: { enabled: process.env.REPORT_GAS === "true" },

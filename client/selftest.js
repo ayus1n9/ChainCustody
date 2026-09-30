@@ -68,6 +68,14 @@ const { MerkleTree } = require("./merkle");
   }
   console.log("PASS  Merkle tree dossier: root calculation and inclusion proofs verified");
 
+  // 9. EIP-712 typed structure and domain formatting
+  const { getDomain, HANDOVER_TYPES } = require("./eip712");
+  const domain = getDomain(80002, "0x1111111111111111111111111111111111111111");
+  assert.strictEqual(domain.name, "ChainCustody");
+  assert.strictEqual(domain.chainId, 80002);
+  assert.ok(HANDOVER_TYPES.CustodyHandover.length === 6, "Must define 6 fields in CustodyHandover");
+  console.log("PASS  EIP-712 typed structured data definitions and domain separator verified");
+
   console.log("\nAll client-layer self-tests passed.");
 })().catch((e) => { console.error("FAIL", e); process.exit(1); });
 

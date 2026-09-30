@@ -45,6 +45,12 @@ contract ChainCustody {
     mapping(uint256 => string) public disposalReason;                  // legal justification for expungement
     mapping(uint256 => uint64) public holdUntil;                      // statutory/evidentiary hold deadline
     mapping(uint256 => string) public holdReason;                     // legal basis for the hold
+    mapping(uint256 => uint256) public nonces;                        // EIP-712 replay protection
+
+    bytes32 public immutable DOMAIN_SEPARATOR;
+    bytes32 public constant HANDOVER_TYPEHASH = keccak256(
+        "CustodyHandover(uint256 evidenceId,address from,address to,bytes32 wrappedKeyHash,uint256 nonce,uint256 deadline)"
+    );
 
     // ----------------------------------------------------------------- errors
     error NotAdmin();
@@ -66,6 +72,8 @@ contract ChainCustody {
     error AlreadyProposed();
     error EvidentiaryHoldActive(uint64 lockedUntil);
     error InvalidHoldDuration();
+    error SignatureExpired();
+    error InvalidSignature();
 
     // ----------------------------------------------------------------- events
     // Events form the immutable audit trail of the chain of custody.
@@ -85,6 +93,14 @@ contract ChainCustody {
     event CustodyTransferred(uint256 indexed id, address indexed from, address indexed to, uint256 timestamp);
     event CustodyTransferProposed(uint256 indexed id, address indexed from, address indexed to, uint256 timestamp);
     event CustodyTransferCancelled(uint256 indexed id, address indexed by, address indexed to, uint256 timestamp);
+    event CustodyTransferredWithSignature(
+        uint256 indexed id,
+        address indexed from,
+        address indexed to,
+        address relayer,
+        uint256 nonce,
+        uint256 timestamp
+    );
     event EvidenceSealed(uint256 indexed id, address indexed by, string reason, uint256 timestamp);
     event EvidenceUnsealed(uint256 indexed id, address indexed by, string reason, uint256 timestamp);
     event DisposalProposed(uint256 indexed id, address indexed proposer, string reason, uint256 timestamp);
@@ -112,6 +128,15 @@ contract ChainCustody {
 
     constructor() {
         admin = msg.sender;
+        DOMAIN_SEPARATOR = keccak256(
+            abi.encode(
+                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+                keccak256(bytes("ChainCustody")),
+                keccak256(bytes("1")),
+                block.chainid,
+                address(this)
+            )
+        );
     }
 
     // ------------------------------------------------------------ party setup
@@ -257,6 +282,97 @@ contract ChainCustody {
         delete _pendingWrappedKey[id];
 
         emit CustodyTransferred(id, prevCustodian, msg.sender, block.timestamp);
+    }
+
+    /// @notice Gasless / off-chain authorized custody transfer using an EIP-712 typed structured signature.
+    ///         Allows a field officer or offline custodian to authorize custody transfer
+    ///         without paying gas; any relayer or recipient can submit the transaction.
+    /// @param id          Evidence identifier
+    /// @param to          New custodian receiving custody
+    /// @param wrappedKey  AES key encrypted for the new recipient
+    /// @param deadline    Unix timestamp after which the signature expires
+    /// @param signature   65-byte EIP-712 cryptographic signature from the current custodian
+    function transferCustodyWithSignature(
+        uint256 id,
+        address to,
+        bytes calldata wrappedKey,
+        uint256 deadline,
+        bytes calldata signature
+    ) external exists(id) {
+        if (isDisposed[id]) revert EvidenceIsDisposed();
+        if (isSealed[id]) revert EvidenceIsSealed();
+        if (block.timestamp > deadline) revert SignatureExpired();
+        if (to == address(0) || roleOf[to] == Role.None) revert InvalidInput();
+        if (wrappedKey.length == 0) revert InvalidInput();
+
+        address currentHolder = _evidence[id].custodian;
+        if (to == currentHolder) revert InvalidInput();
+
+        bytes32 digest = keccak256(abi.encodePacked(
+            "\x19\x01",
+            DOMAIN_SEPARATOR,
+            _hashHandover(id, currentHolder, to, keccak256(wrappedKey), nonces[id], deadline)
+        ));
+
+        address signer = _recoverSigner(digest, signature);
+        if (signer == address(0) || signer != currentHolder) revert InvalidSignature();
+
+        uint256 usedNonce = nonces[id]++;
+
+        _evidence[id].custodian = to;
+        hasAccess[id][to] = true;
+        _wrappedKey[id][to] = wrappedKey;
+
+        delete proposedCustodianOf[id];
+        delete _pendingWrappedKey[id];
+
+        emit CustodyTransferred(id, currentHolder, to, block.timestamp);
+        emit CustodyTransferredWithSignature(id, currentHolder, to, msg.sender, usedNonce, block.timestamp);
+    }
+
+    /// @notice Computes the EIP-712 digest for a custody handover.
+    function getHandoverDigest(
+        uint256 id,
+        address to,
+        bytes32 wrappedKeyHash,
+        uint256 deadline
+    ) external view exists(id) returns (bytes32) {
+        return keccak256(abi.encodePacked(
+            "\x19\x01",
+            DOMAIN_SEPARATOR,
+            _hashHandover(id, _evidence[id].custodian, to, wrappedKeyHash, nonces[id], deadline)
+        ));
+    }
+
+    function _hashHandover(
+        uint256 id,
+        address from,
+        address to,
+        bytes32 wrappedKeyHash,
+        uint256 nonce,
+        uint256 deadline
+    ) internal pure returns (bytes32) {
+        return keccak256(abi.encode(
+            HANDOVER_TYPEHASH,
+            id,
+            from,
+            to,
+            wrappedKeyHash,
+            nonce,
+            deadline
+        ));
+    }
+
+    function _recoverSigner(bytes32 digest, bytes calldata sig) internal pure returns (address) {
+        if (sig.length != 65) revert InvalidSignature();
+        bytes32 r = bytes32(sig[0:32]);
+        bytes32 s = bytes32(sig[32:64]);
+        uint8 v = uint8(sig[64]);
+        if (uint256(s) > 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0) {
+            revert InvalidSignature();
+        }
+        if (v != 27 && v != 28) revert InvalidSignature();
+        return ecrecover(digest, v, r, s);
     }
 
     /// @notice An authorized party records that they accessed the evidence.

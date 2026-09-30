@@ -64,6 +64,7 @@ custodian, and custody itself can be **transferred** via direct or **2-step hand
 - **Judicial Evidence Sealing & Archival Protocol** (`sealEvidence` / `unsealEvidence`): only the presiding Court Magistrate can issue formal impoundment orders, freezing all custody transfers and key grants to guarantee trial integrity.
 - **Multi-Party Expungement & Key Shredding Protocol** (`proposeDisposal` → `confirmDisposal`): prevents unilateral evidence spoliation. Requires Court judicial decree + Active Custodian concurrence to permanently shred AES decryption keys and clear off-chain storage pointers while preserving the immutable SHA-256 hash anchor and audit trail.
 - **Time-Locked Evidentiary Hold & Statutory Retention Lock** (`placeEvidentiaryHold` / `releaseEvidentiaryHold`): enforces statutory retention mandates and litigation holds (**FRCP Rule 37(e)**). Blocks all evidence disposal and expungement attempts until the timestamp expires or the Court explicitly issues a dismissal order.
+- **EIP-712 Typed Structured Data Handover Attestation** (`transferCustodyWithSignature`): enables field examiners and seizing officers to authorize custody transfers via cryptographically non-repudiable off-chain signatures without holding native gas tokens. Transactions can be relayed by any third party with domain-separator binding and per-evidence replay nonces (`nonces[id]`).
 
 Every state change emits an event — that event log **is** the immutable audit trail, which
 is why the contract doesn't also keep a separate on-chain array for it (cheaper in gas,

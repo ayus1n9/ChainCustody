@@ -349,7 +349,8 @@ function renderAuditTrail() {
     DisposalCancelled: "↩️",
     EvidenceDisposed: "🔥",
     EvidentiaryHoldPlaced: "⏳",
-    EvidentiaryHoldReleased: "🔓"
+    EvidentiaryHoldReleased: "🔓",
+    CustodyTransferredWithSignature: "🔏"
   };
 
   [...state.auditTrail].reverse().forEach((l, idx) => {
@@ -529,6 +530,49 @@ document.addEventListener("DOMContentLoaded", () => {
 
     updatePersonaDisplay();
     toast(`Custody successfully transferred to ${PERSONAS[target].role}!`, "success");
+  });
+
+  // EIP-712 Gasless / Signed Custody Transfer
+  document.getElementById("btnSignHandoverEIP712").addEventListener("click", () => {
+    const ev = state.evidence[currentEvidenceId];
+    if (ev.isDisposed) {
+      toast(`[REVERT] EvidenceIsDisposed(): Evidence #${currentEvidenceId} is expunged!`, "error");
+      return;
+    }
+    if (ev.isSealed) {
+      toast(`[REVERT] EvidenceIsSealed(): Evidence #${currentEvidenceId} is judicially sealed!`, "error");
+      return;
+    }
+    if (ev.custodian !== currentPersonaKey) {
+      toast(`[REVERT] NotCustodian(): Only current custodian (${PERSONAS[ev.custodian].role}) can sign custody handover!`, "error");
+      return;
+    }
+
+    const target = document.getElementById("transferTargetSelect").value;
+    if (target === currentPersonaKey) {
+      toast(`[REVERT] InvalidInput(): Cannot transfer custody to yourself!`, "error");
+      return;
+    }
+
+    const fromRole = PERSONAS[currentPersonaKey].role;
+    const toRole = PERSONAS[target].role;
+    const currentNonce = ev.nonce || 0;
+    ev.nonce = currentNonce + 1;
+    ev.custodian = target;
+    ev.permissions[target] = true;
+    currentBlock++;
+
+    state.auditTrail.push({
+      block: currentBlock,
+      event: "CustodyTransferredWithSignature",
+      by: currentPersonaKey,
+      to: target,
+      detail: `EIP-712 Signed Custody Handover from ${fromRole} to ${toRole} (Relayed Gasless, Nonce: #${currentNonce})`,
+      time: new Date().toISOString().replace("T", " ").slice(0, 19)
+    });
+
+    updatePersonaDisplay();
+    toast(`🔏 Gasless EIP-712 signature verified! Custody attested to ${toRole} (Nonce #${currentNonce})`, "success");
   });
 
   // Grant Access

@@ -74,6 +74,7 @@ async function main() {
     "AccessRevoked",
     "AccessLogged",
     "CustodyTransferred",
+    "CustodyTransferredWithSignature",
     "EvidenceSealed",
     "EvidenceUnsealed",
     "DisposalProposed",
@@ -113,6 +114,9 @@ async function main() {
     } else if (l.eventName === "CustodyTransferred") {
       actor = a[1];
       details = `Custody handed over to: ${a[2]}`;
+    } else if (l.eventName === "CustodyTransferredWithSignature") {
+      actor = a[1];
+      details = `EIP-712 Signed Handover to ${a[2]} (Relayed by: ${a[3]}, Nonce: #${a[4]})`;
     } else if (l.eventName === "EvidenceSealed") {
       actor = a[1];
       details = `Judicial Seal Order: "${a[2]}"`;

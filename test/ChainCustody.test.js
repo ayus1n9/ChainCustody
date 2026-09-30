@@ -3,6 +3,7 @@ const { ethers } = require("hardhat");
 const { loadFixture, time } = require("@nomicfoundation/hardhat-toolbox/network-helpers");
 const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { MerkleTree } = require("../client/merkle");
+const { signCustodyHandover } = require("../client/eip712");
 
 const ROLE = { None: 0, Investigator: 1, Lab: 2, Court: 3, Defense: 4 };
 const HASH = ethers.id("evidence-file-1"); // any bytes32
@@ -639,6 +640,265 @@ describe("ChainCustody", () => {
       // Releasing when no hold active reverts
       await expect(c.connect(court).releaseEvidentiaryHold(1, "Another release"))
         .to.be.revertedWithCustomError(c, "InvalidInput");
+    });
+  });
+
+  describe("EIP-712 typed structured data custody signatures & gasless attestation", () => {
+    it("executes gasless custody transfer using EIP-712 signature from custodian and emits CustodyTransferredWithSignature", async () => {
+      const { c, investigator, lab, outsider } = await loadFixture(withEvidenceFixture);
+      const network = await ethers.provider.getNetwork();
+      const chainId = network.chainId;
+      const contractAddress = await c.getAddress();
+      const deadline = (await time.latest()) + 3600;
+      const nonce = await c.nonces(1);
+
+      const { signature } = await signCustodyHandover({
+        signer: investigator,
+        contractAddress,
+        chainId,
+        evidenceId: 1,
+        from: investigator.address,
+        to: lab.address,
+        wrappedKey: KEY,
+        nonce,
+        deadline
+      });
+
+      // Outsider (unregistered relayer) submits transaction on behalf of investigator
+      await expect(c.connect(outsider).transferCustodyWithSignature(1, lab.address, KEY, deadline, signature))
+        .to.emit(c, "CustodyTransferred")
+        .withArgs(1, investigator.address, lab.address, anyValue)
+        .and.to.emit(c, "CustodyTransferredWithSignature")
+        .withArgs(1, investigator.address, lab.address, outsider.address, 0, anyValue);
+
+      // Verify state changes
+      const [, , newCustodian] = await c.getEvidence(1);
+      expect(newCustodian).to.equal(lab.address);
+      expect(await c.hasAccess(1, lab.address)).to.equal(true);
+      expect(await c.getWrappedKey(1, lab.address)).to.equal(KEY);
+      expect(await c.nonces(1)).to.equal(1);
+    });
+
+    it("verifies on-chain getHandoverDigest matches client EIP-712 computed digest", async () => {
+      const { c, investigator, lab } = await loadFixture(withEvidenceFixture);
+      const network = await ethers.provider.getNetwork();
+      const chainId = network.chainId;
+      const contractAddress = await c.getAddress();
+      const deadline = (await time.latest()) + 7200;
+      const nonce = await c.nonces(1);
+      const wrappedKeyHash = ethers.keccak256(KEY);
+
+      const onChainDigest = await c.getHandoverDigest(1, lab.address, wrappedKeyHash, deadline);
+
+      const { domain, value } = await signCustodyHandover({
+        signer: investigator,
+        contractAddress,
+        chainId,
+        evidenceId: 1,
+        from: investigator.address,
+        to: lab.address,
+        wrappedKey: KEY,
+        nonce,
+        deadline
+      });
+
+      const offChainDigest = ethers.TypedDataEncoder.hash(
+        domain,
+        { CustodyHandover: [
+          { name: "evidenceId", type: "uint256" },
+          { name: "from", type: "address" },
+          { name: "to", type: "address" },
+          { name: "wrappedKeyHash", type: "bytes32" },
+          { name: "nonce", type: "uint256" },
+          { name: "deadline", type: "uint256" }
+        ]},
+        value
+      );
+
+      expect(onChainDigest).to.equal(offChainDigest);
+    });
+
+    it("rejects transfer when signature deadline has expired", async () => {
+      const { c, investigator, lab, outsider } = await loadFixture(withEvidenceFixture);
+      const network = await ethers.provider.getNetwork();
+      const chainId = network.chainId;
+      const contractAddress = await c.getAddress();
+      const deadline = (await time.latest()) + 100;
+      const nonce = await c.nonces(1);
+
+      const { signature } = await signCustodyHandover({
+        signer: investigator,
+        contractAddress,
+        chainId,
+        evidenceId: 1,
+        from: investigator.address,
+        to: lab.address,
+        wrappedKey: KEY,
+        nonce,
+        deadline
+      });
+
+      // Advance time past deadline
+      await time.increaseTo(deadline + 1);
+
+      await expect(c.connect(outsider).transferCustodyWithSignature(1, lab.address, KEY, deadline, signature))
+        .to.be.revertedWithCustomError(c, "SignatureExpired");
+    });
+
+    it("rejects signature signed by a non-custodian or with mismatched parameters", async () => {
+      const { c, investigator, lab, court, defense, outsider } = await loadFixture(withEvidenceFixture);
+      const network = await ethers.provider.getNetwork();
+      const chainId = network.chainId;
+      const contractAddress = await c.getAddress();
+      const deadline = (await time.latest()) + 3600;
+      const nonce = await c.nonces(1);
+
+      // Signed by court instead of current custodian (investigator)
+      const { signature: badSig } = await signCustodyHandover({
+        signer: court,
+        contractAddress,
+        chainId,
+        evidenceId: 1,
+        from: investigator.address,
+        to: lab.address,
+        wrappedKey: KEY,
+        nonce,
+        deadline
+      });
+
+      await expect(c.connect(outsider).transferCustodyWithSignature(1, lab.address, KEY, deadline, badSig))
+        .to.be.revertedWithCustomError(c, "InvalidSignature");
+
+      // Valid signature from investigator for Lab, but relayer tries to send to Defense
+      const { signature: validSigForLab } = await signCustodyHandover({
+        signer: investigator,
+        contractAddress,
+        chainId,
+        evidenceId: 1,
+        from: investigator.address,
+        to: lab.address,
+        wrappedKey: KEY,
+        nonce,
+        deadline
+      });
+
+      await expect(c.connect(outsider).transferCustodyWithSignature(1, defense.address, KEY, deadline, validSigForLab))
+        .to.be.revertedWithCustomError(c, "InvalidSignature");
+
+      // Invalid signature length
+      await expect(c.connect(outsider).transferCustodyWithSignature(1, lab.address, KEY, deadline, "0x1234"))
+        .to.be.revertedWithCustomError(c, "InvalidSignature");
+    });
+
+    it("prevents replay attack using the same signature twice", async () => {
+      const { c, investigator, lab, court, outsider } = await loadFixture(withEvidenceFixture);
+      const network = await ethers.provider.getNetwork();
+      const chainId = network.chainId;
+      const contractAddress = await c.getAddress();
+      const deadline = (await time.latest()) + 3600;
+      const nonce = await c.nonces(1);
+
+      const { signature } = await signCustodyHandover({
+        signer: investigator,
+        contractAddress,
+        chainId,
+        evidenceId: 1,
+        from: investigator.address,
+        to: lab.address,
+        wrappedKey: KEY,
+        nonce,
+        deadline
+      });
+
+      // First execution succeeds: Investigator -> Lab
+      await c.connect(outsider).transferCustodyWithSignature(1, lab.address, KEY, deadline, signature);
+
+      // Immediate replay fails because target is already current custodian
+      await expect(c.connect(outsider).transferCustodyWithSignature(1, lab.address, KEY, deadline, signature))
+        .to.be.revertedWithCustomError(c, "InvalidInput");
+
+      // Lab transfers custody to Court
+      await c.connect(lab).transferCustody(1, court.address, KEY);
+
+      // Replay attempt fails because nonce incremented and original signer is no longer custodian
+      await expect(c.connect(outsider).transferCustodyWithSignature(1, lab.address, KEY, deadline, signature))
+        .to.be.revertedWithCustomError(c, "InvalidSignature");
+    });
+
+    it("rejects transfer with signature when sealed, disposed, or invalid recipient", async () => {
+      const { c, investigator, lab, court, outsider } = await loadFixture(withEvidenceFixture);
+      const network = await ethers.provider.getNetwork();
+      const chainId = network.chainId;
+      const contractAddress = await c.getAddress();
+      const deadline = (await time.latest()) + 3600;
+
+      const { signature } = await signCustodyHandover({
+        signer: investigator,
+        contractAddress,
+        chainId,
+        evidenceId: 1,
+        from: investigator.address,
+        to: lab.address,
+        wrappedKey: KEY,
+        nonce: 0,
+        deadline
+      });
+
+      // Transfer to self
+      await expect(c.transferCustodyWithSignature(1, investigator.address, KEY, deadline, signature))
+        .to.be.revertedWithCustomError(c, "InvalidInput");
+
+      // Transfer to unregistered party
+      await expect(c.transferCustodyWithSignature(1, outsider.address, KEY, deadline, signature))
+        .to.be.revertedWithCustomError(c, "InvalidInput");
+
+      // Empty wrapped key
+      await expect(c.transferCustodyWithSignature(1, lab.address, "0x", deadline, signature))
+        .to.be.revertedWithCustomError(c, "InvalidInput");
+
+      // Sealed evidence
+      await c.connect(court).sealEvidence(1, "Judicial freeze");
+      await expect(c.transferCustodyWithSignature(1, lab.address, KEY, deadline, signature))
+        .to.be.revertedWithCustomError(c, "EvidenceIsSealed");
+    });
+
+    it("rejects malleable high-s signature or invalid v", async () => {
+      const { c, investigator, lab, outsider } = await loadFixture(withEvidenceFixture);
+      const network = await ethers.provider.getNetwork();
+      const chainId = network.chainId;
+      const contractAddress = await c.getAddress();
+      const deadline = (await time.latest()) + 3600;
+      const nonce = await c.nonces(1);
+
+      const { signature } = await signCustodyHandover({
+        signer: investigator,
+        contractAddress,
+        chainId,
+        evidenceId: 1,
+        from: investigator.address,
+        to: lab.address,
+        wrappedKey: KEY,
+        nonce,
+        deadline
+      });
+
+      const r = signature.slice(0, 66);
+      const s = "0x" + signature.slice(66, 130);
+      const v = parseInt(signature.slice(130, 132), 16);
+
+      const N = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141n;
+      const sBig = BigInt(s);
+      const highS = (N - sBig).toString(16).padStart(64, "0");
+      const highV = (v === 27 ? 28 : 27).toString(16).padStart(2, "0");
+      const malleableSig = r + highS + highV;
+
+      await expect(c.connect(outsider).transferCustodyWithSignature(1, lab.address, KEY, deadline, malleableSig))
+        .to.be.revertedWithCustomError(c, "InvalidSignature");
+
+      // Invalid v (not 27 or 28)
+      const invalidVSig = r + signature.slice(66, 130) + "1a"; // v = 26
+      await expect(c.connect(outsider).transferCustodyWithSignature(1, lab.address, KEY, deadline, invalidVSig))
+        .to.be.revertedWithCustomError(c, "InvalidSignature");
     });
   });
 });
