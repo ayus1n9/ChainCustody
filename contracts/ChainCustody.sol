@@ -28,6 +28,8 @@ contract ChainCustody {
     mapping(uint256 => Evidence) private _evidence;
     mapping(uint256 => mapping(address => bool)) public hasAccess;
     mapping(uint256 => mapping(address => bytes)) private _wrappedKey; // AES key, encrypted per recipient
+    mapping(uint256 => address) public proposedCustodianOf;            // pending 2-step custody transfer
+    mapping(uint256 => bytes) private _pendingWrappedKey;
 
     // ----------------------------------------------------------------- errors
     error NotAdmin();
@@ -40,6 +42,8 @@ contract ChainCustody {
     error InvalidInput();
     error NothingToRevoke();
     error CannotRevokeCustodian();
+    error NoTransferPending();
+    error NotProposedCustodian();
 
     // ----------------------------------------------------------------- events
     // Events form the immutable audit trail of the chain of custody.
@@ -49,6 +53,8 @@ contract ChainCustody {
     event AccessRevoked(uint256 indexed id, address indexed by, address indexed from, uint256 timestamp);
     event AccessLogged(uint256 indexed id, address indexed party, uint256 timestamp);
     event CustodyTransferred(uint256 indexed id, address indexed from, address indexed to, uint256 timestamp);
+    event CustodyTransferProposed(uint256 indexed id, address indexed from, address indexed to, uint256 timestamp);
+    event CustodyTransferCancelled(uint256 indexed id, address indexed by, address indexed to, uint256 timestamp);
 
     // -------------------------------------------------------------- modifiers
     modifier onlyAdmin() {
@@ -140,6 +146,46 @@ contract ChainCustody {
         _wrappedKey[id][newCustodian] = wrappedKey;
 
         emit CustodyTransferred(id, msg.sender, newCustodian, block.timestamp);
+    }
+
+    /// @notice Custodian proposes transferring custody to another registered party (Step 1 of 2-step handover).
+    function proposeCustodyTransfer(uint256 id, address to, bytes calldata wrappedKey)
+        external
+        onlyCustodian(id)
+    {
+        if (roleOf[to] == Role.None) revert PartyNotRegistered();
+        if (to == msg.sender || wrappedKey.length == 0) revert InvalidInput();
+
+        proposedCustodianOf[id] = to;
+        _pendingWrappedKey[id] = wrappedKey;
+
+        emit CustodyTransferProposed(id, msg.sender, to, block.timestamp);
+    }
+
+    /// @notice Custodian cancels a pending custody transfer proposal.
+    function cancelCustodyTransfer(uint256 id) external onlyCustodian(id) {
+        address pending = proposedCustodianOf[id];
+        if (pending == address(0)) revert NoTransferPending();
+
+        delete proposedCustodianOf[id];
+        delete _pendingWrappedKey[id];
+
+        emit CustodyTransferCancelled(id, msg.sender, pending, block.timestamp);
+    }
+
+    /// @notice Proposed party accepts custody handover (Step 2 of 2-step handover).
+    function acceptCustody(uint256 id) external exists(id) {
+        if (proposedCustodianOf[id] != msg.sender) revert NotProposedCustodian();
+
+        address prevCustodian = _evidence[id].custodian;
+        _evidence[id].custodian = msg.sender;
+        hasAccess[id][msg.sender] = true;
+        _wrappedKey[id][msg.sender] = _pendingWrappedKey[id];
+
+        delete proposedCustodianOf[id];
+        delete _pendingWrappedKey[id];
+
+        emit CustodyTransferred(id, prevCustodian, msg.sender, block.timestamp);
     }
 
     /// @notice An authorized party records that they accessed the evidence.

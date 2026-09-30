@@ -190,6 +190,56 @@ describe("ChainCustody", () => {
       await expect(c.connect(investigator).transferCustody(1, investigator.address, KEY)).to.be.revertedWithCustomError(c, "InvalidInput");
       await expect(c.connect(investigator).transferCustody(1, court.address, "0x")).to.be.revertedWithCustomError(c, "InvalidInput");
     });
+
+    it("executes 2-step custody handover (propose -> accept)", async () => {
+      const { c, investigator, court, lab } = await loadFixture(withEvidenceFixture);
+      // Step 1: propose
+      await expect(c.connect(investigator).proposeCustodyTransfer(1, court.address, KEY))
+        .to.emit(c, "CustodyTransferProposed")
+        .withArgs(1, investigator.address, court.address, anyValue);
+      expect(await c.proposedCustodianOf(1)).to.equal(court.address);
+
+      // Wrong party cannot accept
+      await expect(c.connect(lab).acceptCustody(1)).to.be.revertedWithCustomError(c, "NotProposedCustodian");
+
+      // Step 2: proposed custodian accepts
+      await expect(c.connect(court).acceptCustody(1))
+        .to.emit(c, "CustodyTransferred")
+        .withArgs(1, investigator.address, court.address, anyValue);
+
+      const [, , custodian] = await c.getEvidence(1);
+      expect(custodian).to.equal(court.address);
+      expect(await c.hasAccess(1, court.address)).to.equal(true);
+      expect(await c.getWrappedKey(1, court.address)).to.equal(KEY);
+      expect(await c.proposedCustodianOf(1)).to.equal(ethers.ZeroAddress);
+    });
+
+    it("allows custodian to cancel pending custody transfer proposal", async () => {
+      const { c, investigator, court } = await loadFixture(withEvidenceFixture);
+      await c.connect(investigator).proposeCustodyTransfer(1, court.address, KEY);
+      await expect(c.connect(investigator).cancelCustodyTransfer(1))
+        .to.emit(c, "CustodyTransferCancelled")
+        .withArgs(1, investigator.address, court.address, anyValue);
+      expect(await c.proposedCustodianOf(1)).to.equal(ethers.ZeroAddress);
+
+      // Trying to accept after cancellation reverts
+      await expect(c.connect(court).acceptCustody(1)).to.be.revertedWithCustomError(c, "NotProposedCustodian");
+
+      // Canceling when none pending reverts
+      await expect(c.connect(investigator).cancelCustodyTransfer(1)).to.be.revertedWithCustomError(c, "NoTransferPending");
+    });
+
+    it("rejects invalid proposeCustodyTransfer calls", async () => {
+      const { c, investigator, outsider, court, lab } = await loadFixture(withEvidenceFixture);
+      // Non-custodian proposing reverts
+      await expect(c.connect(lab).proposeCustodyTransfer(1, court.address, KEY)).to.be.revertedWithCustomError(c, "NotCustodian");
+      // Proposing to unregistered party
+      await expect(c.connect(investigator).proposeCustodyTransfer(1, outsider.address, KEY)).to.be.revertedWithCustomError(c, "PartyNotRegistered");
+      // Proposing to oneself
+      await expect(c.connect(investigator).proposeCustodyTransfer(1, investigator.address, KEY)).to.be.revertedWithCustomError(c, "InvalidInput");
+      // Proposing with empty wrappedKey
+      await expect(c.connect(investigator).proposeCustodyTransfer(1, court.address, "0x")).to.be.revertedWithCustomError(c, "InvalidInput");
+    });
   });
 
   describe("merkle batch inclusion", () => {
