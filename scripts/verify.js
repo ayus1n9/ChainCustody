@@ -89,6 +89,15 @@ async function main() {
     console.log(`  Storage CID       : ${cid}`);
     console.log(`  Current Custodian : ${custodian}`);
     console.log(`  Registered At     : ${new Date(Number(createdAt) * 1000).toUTCString()}`);
+    const isSealed = await contract.isSealed(evidenceId);
+    if (isSealed) {
+      console.log(`  Judicial Seal     : ${B}${RD}🔒 LOCKED BY COURT ORDER${R} ("${await contract.sealReason(evidenceId)}")`);
+    }
+    const holdUntil = await contract.holdUntil(evidenceId);
+    const currentBlockTimestamp = (await ethers.provider.getBlock("latest")).timestamp;
+    if (Number(holdUntil) > currentBlockTimestamp) {
+      console.log(`  Evidentiary Hold  : ${B}${Y}⏳ TIME-LOCKED UNTIL ${new Date(Number(holdUntil) * 1000).toUTCString()}${R} ("${await contract.holdReason(evidenceId)}")`);
+    }
     if (meta.deviceSerial) {
       console.log(`  Hardware Serial   : ${B}${meta.deviceSerial}${R}`);
       console.log(`  Acquisition Tool  : ${meta.acquisitionTool}`);

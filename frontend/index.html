@@ -320,6 +320,40 @@
             <button id="btnCancelDisposal" class="btn btn-outline" disabled>❌ Cancel Proposal</button>
           </div>
         </div>
+
+        <!-- Evidentiary Hold & Statutory Retention Lock Card -->
+        <div class="card" style="grid-column: 1 / -1; margin-top: 1rem; border-left: 4px solid var(--primary);">
+          <div class="card-badge" style="background: rgba(14, 165, 233, 0.2); color: #0ea5e9;">Statutory Retention Lock</div>
+          <h3>⏳ Time-Locked Evidentiary Hold Protocol</h3>
+          <p class="card-desc">Lock evidence under litigation hold (FRCP 37(e)) or statutory retention mandates. Blocks all disposal and destruction until the timestamp expires or Court dismisses the hold.</p>
+
+          <div id="holdStatusBanner" class="seal-banner unsealed">
+            <span id="holdStatusIcon">🟢</span>
+            <span id="holdStatusText">Status: No Active Hold (Standard Retention)</span>
+          </div>
+
+          <div class="two-column-layout" style="margin-top: 1.25rem; gap: 1rem;">
+            <div class="form-group">
+              <label for="holdDurationSelect">Hold Duration:</label>
+              <select id="holdDurationSelect" class="input-field">
+                <option value="3600">1 Hour (Quick Test / Demo)</option>
+                <option value="86400">24 Hours (Short-term Hold)</option>
+                <option value="2592000">30 Days (Pre-trial Motion)</option>
+                <option value="31536000">1 Year (Grand Jury Investigation)</option>
+                <option value="220752000" selected>7 Years (Statutory Evidence Mandate)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="holdReasonInput">Legal Justification / Litigation Hold Basis:</label>
+              <input type="text" id="holdReasonInput" class="input-field" placeholder="e.g. FRCP Rule 37(e) Litigation Hold Notice" value="FRCP Rule 37(e) Litigation Hold / 7-Year Statutory Mandate">
+            </div>
+          </div>
+
+          <div class="btn-group">
+            <button id="btnPlaceHold" class="btn btn-primary">⏳ Place Evidentiary Hold</button>
+            <button id="btnReleaseHold" class="btn btn-outline" disabled>🔓 Release Hold (Court Only)</button>
+          </div>
+        </div>
       </div>
     </section>
 

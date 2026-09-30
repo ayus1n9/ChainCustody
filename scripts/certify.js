@@ -60,6 +60,11 @@ async function main() {
   const isSealed = await contract.isSealed(evidenceId);
   const sealReason = isSealed ? await contract.sealReason(evidenceId) : "None (Unsealed / Active Custody)";
   const isDisposed = await contract.isDisposed(evidenceId);
+  const holdUntil = await contract.holdUntil(evidenceId);
+  const holdReason = await contract.holdReason(evidenceId);
+  const latestBlock = await ethers.provider.getBlock("latest");
+  const isHoldActive = Number(holdUntil) > latestBlock.timestamp;
+  const holdDate = Number(holdUntil) > 0 ? new Date(Number(holdUntil) * 1000).toUTCString() : "None";
 
   // Query events for this evidence ID
   const eventNames = [
@@ -73,7 +78,9 @@ async function main() {
     "EvidenceUnsealed",
     "DisposalProposed",
     "DisposalCancelled",
-    "EvidenceDisposed"
+    "EvidenceDisposed",
+    "EvidentiaryHoldPlaced",
+    "EvidentiaryHoldReleased"
   ];
   let logs = [];
   for (const name of eventNames) {
@@ -121,6 +128,13 @@ async function main() {
     } else if (l.eventName === "EvidenceDisposed") {
       actor = a[2];
       details = `Lawful Multi-Party Disposal: Keys Shredded ("${a[3]}")`;
+    } else if (l.eventName === "EvidentiaryHoldPlaced") {
+      actor = a[1];
+      const holdTimeStr = new Date(Number(a[2]) * 1000).toISOString().replace("T", " ").slice(0, 19) + " UTC";
+      details = `Time-Locked Hold Placed until ${holdTimeStr}: "${a[3]}"`;
+    } else if (l.eventName === "EvidentiaryHoldReleased") {
+      actor = a[1];
+      details = `Judicial Hold Released: "${a[2]}"`;
     }
     const ts = a[a.length - 1];
     const timeStr = ts ? new Date(Number(ts) * 1000).toISOString().replace("T", " ").slice(0, 19) + " UTC" : "Recorded";
@@ -150,6 +164,8 @@ async function main() {
 | **Active Custodian Authority** | \`${custodian}\` |
 | **Judicial Sealing Status** | **${isSealed ? "🔒 SEALED BY COURT ORDER" : "🟢 UNSEALED (ACTIVE CUSTODY)"}** |
 | **Court Docket / Order Rationale** | *${sealReason}* |
+| **Statutory Retention / Evidentiary Hold** | **${isHoldActive ? `⏳ ACTIVE HOLD UNTIL ${holdDate}` : Number(holdUntil) > 0 ? "EXPIRED HOLD" : "🟢 NO HOLD ACTIVE"}** |
+| **Evidentiary Hold Legal Basis** | *${Number(holdUntil) > 0 ? holdReason : "N/A"}* |
 | **Evidence Lifecycle / Expungement** | **${isDisposed ? "🔥 LAWFULLY DISPOSED (KEYS SHREDDED)" : "🟢 ACTIVE EVIDENCE RECORD"}** |
 
 ---

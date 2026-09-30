@@ -43,6 +43,8 @@ contract ChainCustody {
     mapping(uint256 => bool) public isDisposed;                        // permanent disposal flag
     mapping(uint256 => address) public disposalProposer;               // party proposing disposal (Court)
     mapping(uint256 => string) public disposalReason;                  // legal justification for expungement
+    mapping(uint256 => uint64) public holdUntil;                      // statutory/evidentiary hold deadline
+    mapping(uint256 => string) public holdReason;                     // legal basis for the hold
 
     // ----------------------------------------------------------------- errors
     error NotAdmin();
@@ -62,6 +64,8 @@ contract ChainCustody {
     error EvidenceIsDisposed();
     error DisposalNotProposed();
     error AlreadyProposed();
+    error EvidentiaryHoldActive(uint64 lockedUntil);
+    error InvalidHoldDuration();
 
     // ----------------------------------------------------------------- events
     // Events form the immutable audit trail of the chain of custody.
@@ -86,6 +90,8 @@ contract ChainCustody {
     event DisposalProposed(uint256 indexed id, address indexed proposer, string reason, uint256 timestamp);
     event DisposalCancelled(uint256 indexed id, address indexed canceller, uint256 timestamp);
     event EvidenceDisposed(uint256 indexed id, address indexed court, address indexed custodian, string reason, uint256 timestamp);
+    event EvidentiaryHoldPlaced(uint256 indexed id, address indexed by, uint64 holdUntil, string reason, uint256 timestamp);
+    event EvidentiaryHoldReleased(uint256 indexed id, address indexed by, string reason, uint256 timestamp);
 
     // -------------------------------------------------------------- modifiers
     modifier onlyAdmin() {
@@ -292,6 +298,40 @@ contract ChainCustody {
         emit EvidenceUnsealed(id, msg.sender, reason, block.timestamp);
     }
 
+    // ---------------------------------------------------- evidentiary hold
+    /// @notice Place or extend a time-locked evidentiary hold or statutory retention lock.
+    ///         Prevents evidence disposal/destruction until `holdUntilTimestamp` has elapsed.
+    ///         Callable by Court or current Custodian.
+    /// @param id                  Evidence identifier
+    /// @param holdUntilTimestamp  Unix timestamp until which evidence cannot be destroyed
+    /// @param reason              Legal or statutory justification (e.g. "FRCP Rule 37(e) litigation hold")
+    function placeEvidentiaryHold(uint256 id, uint64 holdUntilTimestamp, string calldata reason) external exists(id) {
+        if (isDisposed[id]) revert EvidenceIsDisposed();
+        if (roleOf[msg.sender] != Role.Court && _evidence[id].custodian != msg.sender) revert NotAuthorized();
+        if (holdUntilTimestamp <= block.timestamp || holdUntilTimestamp <= holdUntil[id]) revert InvalidHoldDuration();
+        if (bytes(reason).length == 0) revert InvalidInput();
+
+        holdUntil[id] = holdUntilTimestamp;
+        holdReason[id] = reason;
+
+        emit EvidentiaryHoldPlaced(id, msg.sender, holdUntilTimestamp, reason, block.timestamp);
+    }
+
+    /// @notice Court releases an evidentiary hold early upon judicial dismissal or court order.
+    /// @param id      Evidence identifier
+    /// @param reason  Judicial rationale for early release
+    function releaseEvidentiaryHold(uint256 id, string calldata reason) external exists(id) {
+        if (isDisposed[id]) revert EvidenceIsDisposed();
+        if (roleOf[msg.sender] != Role.Court) revert NotAuthorized();
+        if (holdUntil[id] == 0) revert InvalidInput();
+        if (bytes(reason).length == 0) revert InvalidInput();
+
+        delete holdUntil[id];
+        holdReason[id] = reason;
+
+        emit EvidentiaryHoldReleased(id, msg.sender, reason, block.timestamp);
+    }
+
     // ---------------------------------------------------- multi-party disposal
     /// @notice Court proposes evidence disposal / expungement pursuant to court order.
     /// @param id      Evidence identifier
@@ -299,6 +339,7 @@ contract ChainCustody {
     function proposeDisposal(uint256 id, string calldata reason) external exists(id) {
         if (roleOf[msg.sender] != Role.Court) revert NotAuthorized();
         if (isDisposed[id]) revert EvidenceIsDisposed();
+        if (block.timestamp < holdUntil[id]) revert EvidentiaryHoldActive(holdUntil[id]);
         if (disposalProposer[id] != address(0)) revert AlreadyProposed();
         if (bytes(reason).length == 0) revert InvalidInput();
 
@@ -314,6 +355,7 @@ contract ChainCustody {
         if (isDisposed[id]) revert EvidenceIsDisposed();
         if (disposalProposer[id] == address(0)) revert DisposalNotProposed();
         if (_evidence[id].custodian != msg.sender) revert NotCustodian();
+        if (block.timestamp < holdUntil[id]) revert EvidentiaryHoldActive(holdUntil[id]);
 
         isDisposed[id] = true;
         address court = disposalProposer[id];

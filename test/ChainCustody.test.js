@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { loadFixture } = require("@nomicfoundation/hardhat-toolbox/network-helpers");
+const { loadFixture, time } = require("@nomicfoundation/hardhat-toolbox/network-helpers");
 const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { MerkleTree } = require("../client/merkle");
 
@@ -520,6 +520,125 @@ describe("ChainCustody", () => {
     it("reverts getForensicMetadata on non-existent evidence id", async () => {
       const { c } = await loadFixture(deployFixture);
       await expect(c.getForensicMetadata(999)).to.be.revertedWithCustomError(c, "EvidenceNotFound");
+    });
+  });
+
+  describe("time-locked evidentiary hold & statutory retention lock", () => {
+    it("places evidentiary hold by Court or Custodian and emits EvidentiaryHoldPlaced", async () => {
+      const { c, investigator, court } = await loadFixture(withEvidenceFixture);
+      const currentTime = await time.latest();
+      const holdTime1 = currentTime + 3600; // 1 hour hold
+      const reason1 = "Litigation Hold under FRCP Rule 37(e)";
+
+      // Court places hold
+      await expect(c.connect(court).placeEvidentiaryHold(1, holdTime1, reason1))
+        .to.emit(c, "EvidentiaryHoldPlaced")
+        .withArgs(1, court.address, holdTime1, reason1, anyValue);
+
+      expect(await c.holdUntil(1)).to.equal(holdTime1);
+      expect(await c.holdReason(1)).to.equal(reason1);
+
+      // Custodian extends hold further
+      const holdTime2 = holdTime1 + 86400; // Extend by 1 day
+      const reason2 = "Statutory 7-Year Forensic Retention Requirement";
+      await expect(c.connect(investigator).placeEvidentiaryHold(1, holdTime2, reason2))
+        .to.emit(c, "EvidentiaryHoldPlaced")
+        .withArgs(1, investigator.address, holdTime2, reason2, anyValue);
+
+      expect(await c.holdUntil(1)).to.equal(holdTime2);
+      expect(await c.holdReason(1)).to.equal(reason2);
+    });
+
+    it("rejects placing hold with invalid duration, empty reason, or unauthorized party", async () => {
+      const { c, investigator, lab, court } = await loadFixture(withEvidenceFixture);
+      const currentTime = await time.latest();
+
+      // Unauthorized caller (Lab is not court and not custodian)
+      await expect(c.connect(lab).placeEvidentiaryHold(1, currentTime + 1000, "reason"))
+        .to.be.revertedWithCustomError(c, "NotAuthorized");
+
+      // Past or current timestamp
+      await expect(c.connect(court).placeEvidentiaryHold(1, currentTime - 10, "reason"))
+        .to.be.revertedWithCustomError(c, "InvalidHoldDuration");
+      await expect(c.connect(court).placeEvidentiaryHold(1, currentTime, "reason"))
+        .to.be.revertedWithCustomError(c, "InvalidHoldDuration");
+
+      // Empty reason
+      await expect(c.connect(court).placeEvidentiaryHold(1, currentTime + 1000, ""))
+        .to.be.revertedWithCustomError(c, "InvalidInput");
+
+      // Place initial hold
+      await c.connect(court).placeEvidentiaryHold(1, currentTime + 5000, "Initial hold");
+
+      // Shortening or matching existing hold duration reverts
+      await expect(c.connect(investigator).placeEvidentiaryHold(1, currentTime + 3000, "Shorter hold"))
+        .to.be.revertedWithCustomError(c, "InvalidHoldDuration");
+      await expect(c.connect(investigator).placeEvidentiaryHold(1, currentTime + 5000, "Equal hold"))
+        .to.be.revertedWithCustomError(c, "InvalidHoldDuration");
+    });
+
+    it("prevents proposeDisposal and confirmDisposal while evidentiary hold is active", async () => {
+      const { c, investigator, court } = await loadFixture(withEvidenceFixture);
+      const currentTime = await time.latest();
+      const holdTime = currentTime + 7200;
+
+      await c.connect(court).placeEvidentiaryHold(1, holdTime, "Grand Jury Subpoena Lock");
+
+      // Propose disposal reverts with EvidentiaryHoldActive
+      await expect(c.connect(court).proposeDisposal(1, "Premature disposal"))
+        .to.be.revertedWithCustomError(c, "EvidentiaryHoldActive")
+        .withArgs(holdTime);
+    });
+
+    it("allows disposal once evidentiary hold expires", async () => {
+      const { c, investigator, court } = await loadFixture(withEvidenceFixture);
+      const currentTime = await time.latest();
+      const holdTime = currentTime + 3600;
+
+      await c.connect(investigator).placeEvidentiaryHold(1, holdTime, "Short temporary hold");
+
+      // Fast forward EVM time past hold expiration
+      await time.increaseTo(holdTime + 1);
+
+      // Now disposal proposal and confirmation succeed
+      await expect(c.connect(court).proposeDisposal(1, "Post-hold expungement"))
+        .to.emit(c, "DisposalProposed");
+
+      await expect(c.connect(investigator).confirmDisposal(1))
+        .to.emit(c, "EvidenceDisposed");
+
+      expect(await c.isDisposed(1)).to.equal(true);
+    });
+
+    it("allows Court to release hold early and rejects release from unauthorized parties", async () => {
+      const { c, investigator, lab, court } = await loadFixture(withEvidenceFixture);
+      const currentTime = await time.latest();
+      const holdTime = currentTime + 10000;
+
+      await c.connect(court).placeEvidentiaryHold(1, holdTime, "Court hold");
+
+      // Non-court party cannot release hold
+      await expect(c.connect(investigator).releaseEvidentiaryHold(1, "reason"))
+        .to.be.revertedWithCustomError(c, "NotAuthorized");
+      await expect(c.connect(lab).releaseEvidentiaryHold(1, "reason"))
+        .to.be.revertedWithCustomError(c, "NotAuthorized");
+
+      // Empty reason
+      await expect(c.connect(court).releaseEvidentiaryHold(1, ""))
+        .to.be.revertedWithCustomError(c, "InvalidInput");
+
+      // Court releases hold
+      const releaseReason = "Case dismissed with prejudice; evidentiary hold lifted";
+      await expect(c.connect(court).releaseEvidentiaryHold(1, releaseReason))
+        .to.emit(c, "EvidentiaryHoldReleased")
+        .withArgs(1, court.address, releaseReason, anyValue);
+
+      expect(await c.holdUntil(1)).to.equal(0);
+      expect(await c.holdReason(1)).to.equal(releaseReason);
+
+      // Releasing when no hold active reverts
+      await expect(c.connect(court).releaseEvidentiaryHold(1, "Another release"))
+        .to.be.revertedWithCustomError(c, "InvalidInput");
     });
   });
 });

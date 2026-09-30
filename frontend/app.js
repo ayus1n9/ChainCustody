@@ -73,6 +73,8 @@ const state = {
       isDisposed: false,
       disposalProposer: null,
       disposalReason: "",
+      holdUntil: 0,
+      holdReason: "",
       metadata: {
         deviceSerial: "SAMSUNG-980PRO-NVMe-1TB-SN5GANG0N10423",
         acquisitionTool: "FTK Imager v4.7.1.2 (Hardware Write-Blocker)",
@@ -146,12 +148,55 @@ function updatePersonaDisplay() {
   document.getElementById("activeRoleDisplay").textContent = p.role;
   document.getElementById("activeAddressDisplay").textContent = short(p.address);
 
-  // Update permissions display, seal banner, and disposal controls
+  // Update permissions display, seal banner, disposal, and hold controls
   renderAccessMatrix();
   renderAuditTrail();
   updateTopStats();
   updateSealControls();
   updateDisposalControls();
+  updateHoldControls();
+}
+
+function updateHoldControls() {
+  const ev = state.evidence[currentEvidenceId];
+  if (!ev) return;
+
+  const banner = document.getElementById("holdStatusBanner");
+  const icon = document.getElementById("holdStatusIcon");
+  const text = document.getElementById("holdStatusText");
+  const btnPlace = document.getElementById("btnPlaceHold");
+  const btnRelease = document.getElementById("btnReleaseHold");
+  if (!banner) return;
+
+  const nowSec = Math.floor(Date.now() / 1000);
+  const isHoldActive = ev.holdUntil && ev.holdUntil > nowSec;
+
+  if (ev.isDisposed) {
+    banner.className = "seal-banner disposed";
+    icon.textContent = "🔥";
+    text.textContent = "Status: Evidence Expunged (Holds Irrelevant)";
+    btnPlace.disabled = true;
+    btnRelease.disabled = true;
+  } else if (isHoldActive) {
+    banner.className = "seal-banner sealed";
+    icon.textContent = "⏳";
+    const dateStr = new Date(ev.holdUntil * 1000).toLocaleString();
+    text.textContent = `Status: TIME-LOCKED HOLD ACTIVE until ${dateStr} ("${ev.holdReason}")`;
+    btnPlace.disabled = false;
+    btnRelease.disabled = false;
+  } else if (ev.holdUntil > 0) {
+    banner.className = "seal-banner unsealed";
+    icon.textContent = "🟢";
+    text.textContent = `Status: Evidentiary Hold Expired (Was: "${ev.holdReason}")`;
+    btnPlace.disabled = false;
+    btnRelease.disabled = true;
+  } else {
+    banner.className = "seal-banner unsealed";
+    icon.textContent = "🟢";
+    text.textContent = "Status: No Active Hold (Standard Retention)";
+    btnPlace.disabled = false;
+    btnRelease.disabled = true;
+  }
 }
 
 function updateDisposalControls() {
@@ -246,6 +291,7 @@ function updateTopStats() {
   const legalStatus = document.getElementById("legalStatusDisplay");
   const legalSub = document.getElementById("legalStatusSub");
   if (legalStatus && legalSub) {
+    const nowSec = Math.floor(Date.now() / 1000);
     if (ev.isDisposed) {
       legalStatus.textContent = "EXPUNGED";
       legalStatus.style.color = "var(--danger)";
@@ -254,6 +300,10 @@ function updateTopStats() {
       legalStatus.textContent = "SEALED";
       legalStatus.style.color = "var(--warning)";
       legalSub.textContent = "Court Frozen";
+    } else if (ev.holdUntil && ev.holdUntil > nowSec) {
+      legalStatus.textContent = "HOLD ACTIVE";
+      legalStatus.style.color = "var(--primary)";
+      legalSub.textContent = "Statutory Retention Lock";
     } else {
       legalStatus.textContent = "ACTIVE";
       legalStatus.style.color = "var(--success)";
@@ -297,7 +347,9 @@ function renderAuditTrail() {
     EvidenceUnsealed: "🔓",
     DisposalProposed: "📜",
     DisposalCancelled: "↩️",
-    EvidenceDisposed: "🔥"
+    EvidenceDisposed: "🔥",
+    EvidentiaryHoldPlaced: "⏳",
+    EvidentiaryHoldReleased: "🔓"
   };
 
   [...state.auditTrail].reverse().forEach((l, idx) => {
@@ -635,6 +687,12 @@ document.addEventListener("DOMContentLoaded", () => {
       toast(`[REVERT] EvidenceIsDisposed(): Evidence #${currentEvidenceId} is already expunged!`, "error");
       return;
     }
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (ev.holdUntil && ev.holdUntil > nowSec) {
+      const dateStr = new Date(ev.holdUntil * 1000).toLocaleString();
+      toast(`[REVERT] EvidentiaryHoldActive(): Active evidentiary hold until ${dateStr} blocks expungement!`, "error");
+      return;
+    }
     if (ev.disposalProposer) {
       toast(`[REVERT] AlreadyProposed(): Expungement already proposed by Court!`, "error");
       return;
@@ -673,6 +731,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     if (ev.isDisposed) {
       toast(`[REVERT] EvidenceIsDisposed(): Evidence #${currentEvidenceId} is already expunged!`, "error");
+      return;
+    }
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (ev.holdUntil && ev.holdUntil > nowSec) {
+      toast(`[REVERT] EvidentiaryHoldActive(): Active evidentiary hold blocks destruction!`, "error");
       return;
     }
 
@@ -721,6 +784,80 @@ document.addEventListener("DOMContentLoaded", () => {
 
     updatePersonaDisplay();
     toast(`↩️ Expungement proposal cancelled. Evidence remains active.`, "info");
+  });
+
+  // Evidentiary Hold Handlers
+  document.getElementById("btnPlaceHold").addEventListener("click", () => {
+    const ev = state.evidence[currentEvidenceId];
+    if (ev.isDisposed) {
+      toast(`[REVERT] EvidenceIsDisposed(): Cannot place hold on expunged evidence!`, "error");
+      return;
+    }
+    if (currentPersonaKey !== "court" && currentPersonaKey !== ev.custodian) {
+      toast(`[REVERT] NotAuthorized(): Only Court (Judge) or Active Custodian can place evidentiary hold! Active role: ${PERSONAS[currentPersonaKey].role}`, "error");
+      return;
+    }
+    const duration = parseInt(document.getElementById("holdDurationSelect").value, 10);
+    const nowSec = Math.floor(Date.now() / 1000);
+    const targetTimestamp = nowSec + duration;
+
+    if (ev.holdUntil && targetTimestamp <= ev.holdUntil) {
+      toast(`[REVERT] InvalidHoldDuration(): New hold duration must extend past the current hold deadline!`, "error");
+      return;
+    }
+
+    const reason = document.getElementById("holdReasonInput").value.trim();
+    if (!reason) {
+      toast(`[REVERT] InvalidInput(): Legal justification is required to place an evidentiary hold!`, "error");
+      return;
+    }
+
+    ev.holdUntil = targetTimestamp;
+    ev.holdReason = reason;
+    currentBlock++;
+
+    state.auditTrail.push({
+      block: currentBlock,
+      event: "EvidentiaryHoldPlaced",
+      by: currentPersonaKey,
+      detail: `${PERSONAS[currentPersonaKey].role} placed hold until ${new Date(targetTimestamp * 1000).toLocaleDateString()}: "${reason}"`,
+      time: new Date().toISOString().replace("T", " ").slice(0, 19)
+    });
+
+    updatePersonaDisplay();
+    toast(`⏳ Time-locked evidentiary hold active until ${new Date(targetTimestamp * 1000).toLocaleDateString()}. Evidence destruction blocked.`, "info");
+  });
+
+  document.getElementById("btnReleaseHold").addEventListener("click", () => {
+    const ev = state.evidence[currentEvidenceId];
+    if (ev.isDisposed) {
+      toast(`[REVERT] EvidenceIsDisposed(): Evidence is expunged!`, "error");
+      return;
+    }
+    if (currentPersonaKey !== "court") {
+      toast(`[REVERT] NotAuthorized(): Only Court (Judge) can release an evidentiary hold early! Active role: ${PERSONAS[currentPersonaKey].role}`, "error");
+      return;
+    }
+    if (!ev.holdUntil) {
+      toast(`[REVERT] InvalidInput(): No evidentiary hold active on Evidence #${currentEvidenceId}!`, "error");
+      return;
+    }
+
+    const reason = document.getElementById("holdReasonInput").value.trim() || "Dismissed by Court Order";
+    ev.holdUntil = 0;
+    ev.holdReason = reason;
+    currentBlock++;
+
+    state.auditTrail.push({
+      block: currentBlock,
+      event: "EvidentiaryHoldReleased",
+      by: currentPersonaKey,
+      detail: `Court released evidentiary hold: "${reason}"`,
+      time: new Date().toISOString().replace("T", " ").slice(0, 19)
+    });
+
+    updatePersonaDisplay();
+    toast(`🔓 Evidentiary hold released by Court order. Standard retention resumed.`, "success");
   });
 
   // Register Tab Drag & Drop
