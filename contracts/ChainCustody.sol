@@ -32,6 +32,9 @@ contract ChainCustody {
     mapping(uint256 => bytes) private _pendingWrappedKey;
     mapping(uint256 => bool) public isSealed;                          // judicial seal flag
     mapping(uint256 => string) public sealReason;                      // court docket or order reason
+    mapping(uint256 => bool) public isDisposed;                        // permanent disposal flag
+    mapping(uint256 => address) public disposalProposer;               // party proposing disposal (Court)
+    mapping(uint256 => string) public disposalReason;                  // legal justification for expungement
 
     // ----------------------------------------------------------------- errors
     error NotAdmin();
@@ -48,6 +51,9 @@ contract ChainCustody {
     error NotProposedCustodian();
     error EvidenceIsSealed();
     error EvidenceNotSealed();
+    error EvidenceIsDisposed();
+    error DisposalNotProposed();
+    error AlreadyProposed();
 
     // ----------------------------------------------------------------- events
     // Events form the immutable audit trail of the chain of custody.
@@ -61,6 +67,9 @@ contract ChainCustody {
     event CustodyTransferCancelled(uint256 indexed id, address indexed by, address indexed to, uint256 timestamp);
     event EvidenceSealed(uint256 indexed id, address indexed by, string reason, uint256 timestamp);
     event EvidenceUnsealed(uint256 indexed id, address indexed by, string reason, uint256 timestamp);
+    event DisposalProposed(uint256 indexed id, address indexed proposer, string reason, uint256 timestamp);
+    event DisposalCancelled(uint256 indexed id, address indexed canceller, uint256 timestamp);
+    event EvidenceDisposed(uint256 indexed id, address indexed court, address indexed custodian, string reason, uint256 timestamp);
 
     // -------------------------------------------------------------- modifiers
     modifier onlyAdmin() {
@@ -123,6 +132,7 @@ contract ChainCustody {
 
     /// @notice Custodian grants a registered party access (and supplies the AES key wrapped for them).
     function grantAccess(uint256 id, address to, bytes calldata wrappedKey) external onlyCustodian(id) {
+        if (isDisposed[id]) revert EvidenceIsDisposed();
         if (isSealed[id]) revert EvidenceIsSealed();
         if (roleOf[to] == Role.None) revert PartyNotRegistered();
         if (wrappedKey.length == 0) revert InvalidInput();
@@ -133,6 +143,7 @@ contract ChainCustody {
 
     /// @notice Custodian revokes a party's access. History stays in the audit log.
     function revokeAccess(uint256 id, address from) external onlyCustodian(id) {
+        if (isDisposed[id]) revert EvidenceIsDisposed();
         if (isSealed[id]) revert EvidenceIsSealed();
         if (from == _evidence[id].custodian) revert CannotRevokeCustodian();
         if (!hasAccess[id][from]) revert NothingToRevoke();
@@ -146,6 +157,7 @@ contract ChainCustody {
         external
         onlyCustodian(id)
     {
+        if (isDisposed[id]) revert EvidenceIsDisposed();
         if (isSealed[id]) revert EvidenceIsSealed();
         if (roleOf[newCustodian] == Role.None) revert PartyNotRegistered();
         if (newCustodian == msg.sender || wrappedKey.length == 0) revert InvalidInput();
@@ -162,6 +174,7 @@ contract ChainCustody {
         external
         onlyCustodian(id)
     {
+        if (isDisposed[id]) revert EvidenceIsDisposed();
         if (isSealed[id]) revert EvidenceIsSealed();
         if (roleOf[to] == Role.None) revert PartyNotRegistered();
         if (to == msg.sender || wrappedKey.length == 0) revert InvalidInput();
@@ -185,6 +198,7 @@ contract ChainCustody {
 
     /// @notice Proposed party accepts custody handover (Step 2 of 2-step handover).
     function acceptCustody(uint256 id) external exists(id) {
+        if (isDisposed[id]) revert EvidenceIsDisposed();
         if (isSealed[id]) revert EvidenceIsSealed();
         if (proposedCustodianOf[id] != msg.sender) revert NotProposedCustodian();
 
@@ -202,6 +216,7 @@ contract ChainCustody {
     /// @notice An authorized party records that they accessed the evidence.
     ///         Reverts (and so records nothing) if the caller is not authorized.
     function logAccess(uint256 id) external exists(id) {
+        if (isDisposed[id]) revert EvidenceIsDisposed();
         if (!hasAccess[id][msg.sender]) revert AccessDenied();
         emit AccessLogged(id, msg.sender, block.timestamp);
     }
@@ -211,6 +226,7 @@ contract ChainCustody {
     /// @param id      Evidence identifier
     /// @param reason  Legal rationale / court docket reference for the seal
     function sealEvidence(uint256 id, string calldata reason) external exists(id) {
+        if (isDisposed[id]) revert EvidenceIsDisposed();
         if (roleOf[msg.sender] != Role.Court) revert NotAuthorized();
         if (isSealed[id]) revert EvidenceIsSealed();
         if (bytes(reason).length == 0) revert InvalidInput();
@@ -225,6 +241,7 @@ contract ChainCustody {
     /// @param id      Evidence identifier
     /// @param reason  Judicial unsealing justification / motion ruling reference
     function unsealEvidence(uint256 id, string calldata reason) external exists(id) {
+        if (isDisposed[id]) revert EvidenceIsDisposed();
         if (roleOf[msg.sender] != Role.Court) revert NotAuthorized();
         if (!isSealed[id]) revert EvidenceNotSealed();
         if (bytes(reason).length == 0) revert InvalidInput();
@@ -233,6 +250,55 @@ contract ChainCustody {
         sealReason[id] = reason;
 
         emit EvidenceUnsealed(id, msg.sender, reason, block.timestamp);
+    }
+
+    // ---------------------------------------------------- multi-party disposal
+    /// @notice Court proposes evidence disposal / expungement pursuant to court order.
+    /// @param id      Evidence identifier
+    /// @param reason  Legal basis for disposal (e.g. expungement order, retention expiration)
+    function proposeDisposal(uint256 id, string calldata reason) external exists(id) {
+        if (roleOf[msg.sender] != Role.Court) revert NotAuthorized();
+        if (isDisposed[id]) revert EvidenceIsDisposed();
+        if (disposalProposer[id] != address(0)) revert AlreadyProposed();
+        if (bytes(reason).length == 0) revert InvalidInput();
+
+        disposalProposer[id] = msg.sender;
+        disposalReason[id] = reason;
+
+        emit DisposalProposed(id, msg.sender, reason, block.timestamp);
+    }
+
+    /// @notice Current custodian confirms disposal, executing cryptographic key shredding and CID clearance.
+    /// @param id  Evidence identifier
+    function confirmDisposal(uint256 id) external exists(id) {
+        if (isDisposed[id]) revert EvidenceIsDisposed();
+        if (disposalProposer[id] == address(0)) revert DisposalNotProposed();
+        if (_evidence[id].custodian != msg.sender) revert NotCustodian();
+
+        isDisposed[id] = true;
+        address court = disposalProposer[id];
+        string memory reason = disposalReason[id];
+
+        delete disposalProposer[id];
+        delete disposalReason[id];
+        delete _evidence[id].cid;
+        delete _wrappedKey[id][msg.sender];
+
+        emit EvidenceDisposed(id, court, msg.sender, reason, block.timestamp);
+    }
+
+    /// @notice Proposing court or active custodian can cancel a pending disposal proposal.
+    /// @param id  Evidence identifier
+    function cancelDisposal(uint256 id) external exists(id) {
+        if (disposalProposer[id] == address(0)) revert DisposalNotProposed();
+        if (msg.sender != disposalProposer[id] && msg.sender != _evidence[id].custodian) {
+            revert NotAuthorized();
+        }
+
+        delete disposalProposer[id];
+        delete disposalReason[id];
+
+        emit DisposalCancelled(id, msg.sender, block.timestamp);
     }
 
     // ------------------------------------------------------------------ views

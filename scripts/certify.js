@@ -48,6 +48,7 @@ async function main() {
   const contractAddress = await contract.getAddress();
   const isSealed = await contract.isSealed(evidenceId);
   const sealReason = isSealed ? await contract.sealReason(evidenceId) : "None (Unsealed / Active Custody)";
+  const isDisposed = await contract.isDisposed(evidenceId);
 
   // Query events for this evidence ID
   const eventNames = [
@@ -57,7 +58,10 @@ async function main() {
     "AccessLogged",
     "CustodyTransferred",
     "EvidenceSealed",
-    "EvidenceUnsealed"
+    "EvidenceUnsealed",
+    "DisposalProposed",
+    "DisposalCancelled",
+    "EvidenceDisposed"
   ];
   let logs = [];
   for (const name of eventNames) {
@@ -93,6 +97,15 @@ async function main() {
     } else if (l.eventName === "EvidenceUnsealed") {
       actor = a[1];
       details = `Judicial Unseal Order: "${a[2]}"`;
+    } else if (l.eventName === "DisposalProposed") {
+      actor = a[1];
+      details = `Court Proposed Disposal: "${a[2]}"`;
+    } else if (l.eventName === "DisposalCancelled") {
+      actor = a[1];
+      details = `Disposal Order Rescinded`;
+    } else if (l.eventName === "EvidenceDisposed") {
+      actor = a[2];
+      details = `Lawful Multi-Party Disposal: Keys Shredded ("${a[3]}")`;
     }
     const ts = a[a.length - 1];
     const timeStr = ts ? new Date(Number(ts) * 1000).toISOString().replace("T", " ").slice(0, 19) + " UTC" : "Recorded";
@@ -122,6 +135,7 @@ async function main() {
 | **Active Custodian Authority** | \`${custodian}\` |
 | **Judicial Sealing Status** | **${isSealed ? "🔒 SEALED BY COURT ORDER" : "🟢 UNSEALED (ACTIVE CUSTODY)"}** |
 | **Court Docket / Order Rationale** | *${sealReason}* |
+| **Evidence Lifecycle / Expungement** | **${isDisposed ? "🔥 LAWFULLY DISPOSED (KEYS SHREDDED)" : "🟢 ACTIVE EVIDENCE RECORD"}** |
 
 ---
 

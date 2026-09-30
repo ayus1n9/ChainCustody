@@ -815,3 +815,26 @@ body {
   letter-spacing: 0.5px;
 }
 
+.seal-banner.pending {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px dashed rgba(245, 158, 11, 0.7);
+  color: #fbbf24;
+}
+
+.seal-banner.disposed {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.6);
+  color: #f87171;
+}
+
+.btn-danger-shred {
+  background: #dc2626;
+  color: #fff;
+  font-weight: 700;
+  border: none;
+}
+.btn-danger-shred:hover {
+  background: #b91c1c;
+}
+
+

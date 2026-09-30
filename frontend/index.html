@@ -266,6 +266,29 @@
             <button id="btnUnsealEvidence" class="btn btn-outline" disabled>🔓 Unseal Evidence</button>
           </div>
         </div>
+
+        <!-- Multi-Party Disposal & Key Shredding Card -->
+        <div class="card" style="grid-column: 1 / -1; margin-top: 1rem; border-left: 4px solid var(--danger);">
+          <div class="card-badge" style="background: rgba(239, 68, 68, 0.2); color: #ef4444;">Dual Authorization Protocol</div>
+          <h3>🔥 Multi-Party Expungement & Cryptographic Shredding</h3>
+          <p class="card-desc">Prevents unilateral evidence spoliation. Requires Court judicial decree + Active Custodian concurrence to permanently shred AES keys and clear off-chain storage pointers.</p>
+
+          <div id="disposalStatusBanner" class="seal-banner unsealed">
+            <span id="disposalStatusIcon">🟢</span>
+            <span id="disposalStatusText">Status: Active Record (Not Expunged)</span>
+          </div>
+
+          <div class="form-group" style="margin-top: 1.25rem;">
+            <label for="disposalReasonInput">Legal Basis / Expungement Decree:</label>
+            <input type="text" id="disposalReasonInput" class="input-field" placeholder="e.g. Court Order #2026-EXP-401: Juvenile expungement & retention expiry" value="Court Order #2026-EXP-401: Retention Expiry & Expungement Decree">
+          </div>
+
+          <div class="btn-group">
+            <button id="btnProposeDisposal" class="btn btn-warning">⚖️ Propose Expungement (Court)</button>
+            <button id="btnConfirmDisposal" class="btn btn-danger-shred" disabled>🔥 Execute Key Shredding (Custodian)</button>
+            <button id="btnCancelDisposal" class="btn btn-outline" disabled>❌ Cancel Proposal</button>
+          </div>
+        </div>
       </div>
     </section>
 

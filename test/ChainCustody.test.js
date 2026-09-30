@@ -362,6 +362,107 @@ describe("ChainCustody", () => {
       await expect(c.connect(court).unsealEvidence(1, "")).to.be.revertedWithCustomError(c, "InvalidInput");
     });
   });
+
+  describe("multi-party evidence disposal & key shredding", () => {
+    it("executes full multi-party disposal workflow (Court proposes -> Custodian confirms)", async () => {
+      const { c, investigator, court } = await loadFixture(withEvidenceFixture);
+      const expungementReason = "Court Order #2026-EXP-401: Juvenile record expungement decree";
+
+      // Step 1: Court proposes disposal
+      await expect(c.connect(court).proposeDisposal(1, expungementReason))
+        .to.emit(c, "DisposalProposed")
+        .withArgs(1, court.address, expungementReason, anyValue);
+
+      expect(await c.disposalProposer(1)).to.equal(court.address);
+      expect(await c.disposalReason(1)).to.equal(expungementReason);
+
+      // Step 2: Custodian confirms disposal
+      await expect(c.connect(investigator).confirmDisposal(1))
+        .to.emit(c, "EvidenceDisposed")
+        .withArgs(1, court.address, investigator.address, expungementReason, anyValue);
+
+      expect(await c.isDisposed(1)).to.equal(true);
+      expect(await c.disposalProposer(1)).to.equal(ethers.ZeroAddress);
+
+      // CID and wrapped key are shredded
+      const [anchoredHash, cid] = await c.getEvidence(1);
+      expect(cid).to.equal("");
+      expect(await c.getWrappedKey(1, investigator.address)).to.equal("0x");
+
+      // Historical hash anchor remains provable forever
+      expect(await c.verifyIntegrity(1, anchoredHash)).to.equal(true);
+    });
+
+    it("rejects proposal from non-court party, empty reason, or duplicate proposals", async () => {
+      const { c, investigator, lab, court } = await loadFixture(withEvidenceFixture);
+      await expect(c.connect(investigator).proposeDisposal(1, "reason")).to.be.revertedWithCustomError(c, "NotAuthorized");
+      await expect(c.connect(lab).proposeDisposal(1, "reason")).to.be.revertedWithCustomError(c, "NotAuthorized");
+      await expect(c.connect(court).proposeDisposal(1, "")).to.be.revertedWithCustomError(c, "InvalidInput");
+
+      // Court proposes once
+      await c.connect(court).proposeDisposal(1, "Order: Expunge");
+      // Duplicate proposal before resolution reverts
+      await expect(c.connect(court).proposeDisposal(1, "Another proposal")).to.be.revertedWithCustomError(c, "AlreadyProposed");
+    });
+
+    it("rejects confirmation if not proposed or caller is not custodian", async () => {
+      const { c, investigator, lab, court } = await loadFixture(withEvidenceFixture);
+      // Not proposed yet
+      await expect(c.connect(investigator).confirmDisposal(1)).to.be.revertedWithCustomError(c, "DisposalNotProposed");
+
+      await c.connect(court).proposeDisposal(1, "Order: Expunge");
+
+      // Non-custodian confirms
+      await expect(c.connect(lab).confirmDisposal(1)).to.be.revertedWithCustomError(c, "NotCustodian");
+      await expect(c.connect(court).confirmDisposal(1)).to.be.revertedWithCustomError(c, "NotCustodian");
+    });
+
+    it("allows proposer or custodian to cancel pending disposal proposal", async () => {
+      const { c, investigator, court, lab } = await loadFixture(withEvidenceFixture);
+      // Cancel when none pending
+      await expect(c.connect(investigator).cancelDisposal(1)).to.be.revertedWithCustomError(c, "DisposalNotProposed");
+
+      await c.connect(court).proposeDisposal(1, "Expunge order");
+
+      // Unauthorized party cannot cancel
+      await expect(c.connect(lab).cancelDisposal(1)).to.be.revertedWithCustomError(c, "NotAuthorized");
+
+      // Proposer cancels
+      await expect(c.connect(court).cancelDisposal(1))
+        .to.emit(c, "DisposalCancelled")
+        .withArgs(1, court.address, anyValue);
+
+      expect(await c.disposalProposer(1)).to.equal(ethers.ZeroAddress);
+
+      // Subsequent confirmation fails
+      await expect(c.connect(investigator).confirmDisposal(1)).to.be.revertedWithCustomError(c, "DisposalNotProposed");
+
+      // Custodian can also cancel if re-proposed
+      await c.connect(court).proposeDisposal(1, "Expunge order v2");
+      await expect(c.connect(investigator).cancelDisposal(1))
+        .to.emit(c, "DisposalCancelled")
+        .withArgs(1, investigator.address, anyValue);
+    });
+
+    it("permanently blocks all operations once evidence is disposed", async () => {
+      const { c, investigator, lab, court } = await loadFixture(withEvidenceFixture);
+      await c.connect(court).proposeDisposal(1, "Expunge order");
+      await c.connect(investigator).confirmDisposal(1);
+
+      // All state operations must revert with EvidenceIsDisposed
+      await expect(c.connect(investigator).grantAccess(1, lab.address, KEY)).to.be.revertedWithCustomError(c, "EvidenceIsDisposed");
+      await expect(c.connect(investigator).revokeAccess(1, lab.address)).to.be.revertedWithCustomError(c, "EvidenceIsDisposed");
+      await expect(c.connect(investigator).transferCustody(1, lab.address, KEY)).to.be.revertedWithCustomError(c, "EvidenceIsDisposed");
+      await expect(c.connect(investigator).proposeCustodyTransfer(1, lab.address, KEY)).to.be.revertedWithCustomError(c, "EvidenceIsDisposed");
+      await expect(c.connect(lab).acceptCustody(1)).to.be.revertedWithCustomError(c, "EvidenceIsDisposed");
+      await expect(c.connect(investigator).logAccess(1)).to.be.revertedWithCustomError(c, "EvidenceIsDisposed");
+      await expect(c.connect(court).sealEvidence(1, "reason")).to.be.revertedWithCustomError(c, "EvidenceIsDisposed");
+      await expect(c.connect(court).unsealEvidence(1, "reason")).to.be.revertedWithCustomError(c, "EvidenceIsDisposed");
+      await expect(c.connect(court).proposeDisposal(1, "reason")).to.be.revertedWithCustomError(c, "EvidenceIsDisposed");
+      await expect(c.connect(investigator).confirmDisposal(1)).to.be.revertedWithCustomError(c, "EvidenceIsDisposed");
+    });
+  });
 });
+
 
 

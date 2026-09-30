@@ -70,6 +70,9 @@ const state = {
       createdAtBlock: 6,
       isSealed: false,
       sealReason: "",
+      isDisposed: false,
+      disposalProposer: null,
+      disposalReason: "",
       permissions: {
         investigator: true,
         lab: true,
@@ -130,11 +133,47 @@ function updatePersonaDisplay() {
   document.getElementById("activeRoleDisplay").textContent = p.role;
   document.getElementById("activeAddressDisplay").textContent = short(p.address);
 
-  // Update permissions display & seal banner
+  // Update permissions display, seal banner, and disposal controls
   renderAccessMatrix();
   renderAuditTrail();
   updateTopStats();
   updateSealControls();
+  updateDisposalControls();
+}
+
+function updateDisposalControls() {
+  const ev = state.evidence[currentEvidenceId];
+  if (!ev) return;
+
+  const banner = document.getElementById("disposalStatusBanner");
+  const icon = document.getElementById("disposalStatusIcon");
+  const text = document.getElementById("disposalStatusText");
+  const btnProp = document.getElementById("btnProposeDisposal");
+  const btnConf = document.getElementById("btnConfirmDisposal");
+  const btnCanc = document.getElementById("btnCancelDisposal");
+
+  if (ev.isDisposed) {
+    banner.className = "seal-banner disposed";
+    icon.textContent = "🔥";
+    text.textContent = `Status: LAWFULLY EXPUNGED — Keys Shredded pursuant to Court Order`;
+    btnProp.disabled = true;
+    btnConf.disabled = true;
+    btnCanc.disabled = true;
+  } else if (ev.disposalProposer) {
+    banner.className = "seal-banner pending";
+    icon.textContent = "⚠️";
+    text.textContent = `Status: Court Expungement Order Pending Custodian Concurrence ("${ev.disposalReason}")`;
+    btnProp.disabled = true;
+    btnConf.disabled = false;
+    btnCanc.disabled = false;
+  } else {
+    banner.className = "seal-banner unsealed";
+    icon.textContent = "🟢";
+    text.textContent = "Status: Active Record (Not Expunged)";
+    btnProp.disabled = false;
+    btnConf.disabled = true;
+    btnCanc.disabled = true;
+  }
 }
 
 function updateSealControls() {
@@ -147,7 +186,13 @@ function updateSealControls() {
   const btnSeal = document.getElementById("btnSealEvidence");
   const btnUnseal = document.getElementById("btnUnsealEvidence");
 
-  if (ev.isSealed) {
+  if (ev.isDisposed) {
+    banner.className = "seal-banner disposed";
+    icon.textContent = "🔥";
+    text.textContent = "Status: Evidence Expunged (Cannot Seal/Unseal)";
+    btnSeal.disabled = true;
+    btnUnseal.disabled = true;
+  } else if (ev.isSealed) {
     banner.className = "seal-banner sealed";
     icon.textContent = "🔒";
     text.textContent = `Status: JUDICIALLY SEALED — ${ev.sealReason || "Court Order"}`;
@@ -175,7 +220,11 @@ function updateTopStats() {
   const legalStatus = document.getElementById("legalStatusDisplay");
   const legalSub = document.getElementById("legalStatusSub");
   if (legalStatus && legalSub) {
-    if (ev.isSealed) {
+    if (ev.isDisposed) {
+      legalStatus.textContent = "EXPUNGED";
+      legalStatus.style.color = "var(--danger)";
+      legalSub.textContent = "Keys Shredded & Closed";
+    } else if (ev.isSealed) {
       legalStatus.textContent = "SEALED";
       legalStatus.style.color = "var(--warning)";
       legalSub.textContent = "Court Frozen";
@@ -196,12 +245,12 @@ function renderAccessMatrix() {
   roles.forEach(r => {
     const li = document.createElement("li");
     li.className = "permission-item";
-    const has = ev.permissions[r];
+    const has = !ev.isDisposed && ev.permissions[r];
     const isCust = ev.custodian === r;
 
     li.innerHTML = `
       <span>${PERSONAS[r].label} ${isCust ? '<strong style="color:var(--primary); font-size:0.75rem;">(Custodian)</strong>' : ''}</span>
-      <span class="${has ? 'badge-granted' : 'badge-denied'}">${has ? 'GRANTED' : 'NO ACCESS'}</span>
+      <span class="${has ? 'badge-granted' : 'badge-denied'}">${has ? 'GRANTED' : (ev.isDisposed ? 'SHREDDED' : 'NO ACCESS')}</span>
     `;
     list.appendChild(li);
   });
@@ -218,7 +267,10 @@ function renderAuditTrail() {
     CustodyTransferred: "🔄",
     AccessRevoked: "🚫",
     EvidenceSealed: "⚖️",
-    EvidenceUnsealed: "🔓"
+    EvidenceUnsealed: "🔓",
+    DisposalProposed: "📜",
+    DisposalCancelled: "↩️",
+    EvidenceDisposed: "🔥"
   };
 
   [...state.auditTrail].reverse().forEach((l, idx) => {
@@ -364,6 +416,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // Custody Transfer
   document.getElementById("btnTransferCustody").addEventListener("click", () => {
     const ev = state.evidence[currentEvidenceId];
+    if (ev.isDisposed) {
+      toast(`[REVERT] EvidenceIsDisposed(): Evidence #${currentEvidenceId} is expunged and keys are shredded!`, "error");
+      return;
+    }
     if (ev.isSealed) {
       toast(`[REVERT] EvidenceIsSealed(): Evidence #${currentEvidenceId} is judicially sealed by court order! Custody transfers are frozen.`, "error");
       return;
@@ -399,6 +455,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // Grant Access
   document.getElementById("btnGrantAccess").addEventListener("click", () => {
     const ev = state.evidence[currentEvidenceId];
+    if (ev.isDisposed) {
+      toast(`[REVERT] EvidenceIsDisposed(): Evidence #${currentEvidenceId} is expunged! Access grants prohibited.`, "error");
+      return;
+    }
     if (ev.isSealed) {
       toast(`[REVERT] EvidenceIsSealed(): Evidence #${currentEvidenceId} is judicially sealed! Access grants are frozen.`, "error");
       return;
@@ -428,6 +488,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // Revoke Access
   document.getElementById("btnRevokeAccess").addEventListener("click", () => {
     const ev = state.evidence[currentEvidenceId];
+    if (ev.isDisposed) {
+      toast(`[REVERT] EvidenceIsDisposed(): Evidence #${currentEvidenceId} is expunged! Access modifications prohibited.`, "error");
+      return;
+    }
     if (ev.isSealed) {
       toast(`[REVERT] EvidenceIsSealed(): Evidence #${currentEvidenceId} is judicially sealed! Access modifications are frozen.`, "error");
       return;
@@ -467,6 +531,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // Judicial Sealing Handlers
   document.getElementById("btnSealEvidence").addEventListener("click", () => {
     const ev = state.evidence[currentEvidenceId];
+    if (ev.isDisposed) {
+      toast(`[REVERT] EvidenceIsDisposed(): Evidence #${currentEvidenceId} is expunged and cannot be sealed!`, "error");
+      return;
+    }
     if (currentPersonaKey !== "court") {
       toast(`[REVERT] NotAuthorized(): Only Court (Judge) can issue sealing orders! Active role: ${PERSONAS[currentPersonaKey].role}`, "error");
       return;
@@ -499,6 +567,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("btnUnsealEvidence").addEventListener("click", () => {
     const ev = state.evidence[currentEvidenceId];
+    if (ev.isDisposed) {
+      toast(`[REVERT] EvidenceIsDisposed(): Evidence #${currentEvidenceId} is expunged and cannot be unsealed!`, "error");
+      return;
+    }
     if (currentPersonaKey !== "court") {
       toast(`[REVERT] NotAuthorized(): Only Court (Judge) can unseal evidence! Active role: ${PERSONAS[currentPersonaKey].role}`, "error");
       return;
@@ -523,6 +595,105 @@ document.addEventListener("DOMContentLoaded", () => {
 
     updatePersonaDisplay();
     toast(`🔓 Evidence #${currentEvidenceId} unsealed and returned to active custody.`, "success");
+  });
+
+  // Multi-Party Disposal & Key Shredding Handlers
+  document.getElementById("btnProposeDisposal").addEventListener("click", () => {
+    const ev = state.evidence[currentEvidenceId];
+    if (currentPersonaKey !== "court") {
+      toast(`[REVERT] NotAuthorized(): Only Court (Judge) can propose evidence expungement! Active role: ${PERSONAS[currentPersonaKey].role}`, "error");
+      return;
+    }
+    if (ev.isDisposed) {
+      toast(`[REVERT] EvidenceIsDisposed(): Evidence #${currentEvidenceId} is already expunged!`, "error");
+      return;
+    }
+    if (ev.disposalProposer) {
+      toast(`[REVERT] AlreadyProposed(): Expungement already proposed by Court!`, "error");
+      return;
+    }
+    const reason = document.getElementById("disposalReasonInput").value.trim();
+    if (!reason) {
+      toast(`[REVERT] InvalidInput(): Expungement decree or legal basis is required!`, "error");
+      return;
+    }
+
+    ev.disposalProposer = currentPersonaKey;
+    ev.disposalReason = reason;
+    currentBlock++;
+
+    state.auditTrail.push({
+      block: currentBlock,
+      event: "DisposalProposed",
+      by: currentPersonaKey,
+      detail: `Court proposed expungement: "${reason}" (Awaiting Custodian concurrence)`,
+      time: new Date().toISOString().replace("T", " ").slice(0, 19)
+    });
+
+    updatePersonaDisplay();
+    toast(`📜 Expungement proposed by Court. Awaiting concurrence from Custodian (${PERSONAS[ev.custodian].role}).`, "info");
+  });
+
+  document.getElementById("btnConfirmDisposal").addEventListener("click", () => {
+    const ev = state.evidence[currentEvidenceId];
+    if (!ev.disposalProposer) {
+      toast(`[REVERT] DisposalNotProposed(): No expungement proposal pending for Evidence #${currentEvidenceId}!`, "error");
+      return;
+    }
+    if (currentPersonaKey !== ev.custodian) {
+      toast(`[REVERT] NotCustodian(): Only current custodian (${PERSONAS[ev.custodian].role}) can confirm expungement!`, "error");
+      return;
+    }
+    if (ev.isDisposed) {
+      toast(`[REVERT] EvidenceIsDisposed(): Evidence #${currentEvidenceId} is already expunged!`, "error");
+      return;
+    }
+
+    ev.isDisposed = true;
+    const courtProposer = ev.disposalProposer;
+    const reason = ev.disposalReason;
+    ev.disposalProposer = null;
+    ev.cid = "";
+    Object.keys(ev.permissions).forEach(k => { ev.permissions[k] = false; });
+    currentBlock++;
+
+    state.auditTrail.push({
+      block: currentBlock,
+      event: "EvidenceDisposed",
+      by: currentPersonaKey,
+      detail: `Multi-party expungement confirmed: Keys shredded and CID purged ("${reason}")`,
+      time: new Date().toISOString().replace("T", " ").slice(0, 19)
+    });
+
+    updatePersonaDisplay();
+    toast(`🔥 Evidence #${currentEvidenceId} successfully expunged. AES keys permanently shredded!`, "error");
+  });
+
+  document.getElementById("btnCancelDisposal").addEventListener("click", () => {
+    const ev = state.evidence[currentEvidenceId];
+    if (!ev.disposalProposer) {
+      toast(`[REVERT] DisposalNotProposed(): No pending expungement proposal to cancel!`, "error");
+      return;
+    }
+    if (currentPersonaKey !== ev.disposalProposer && currentPersonaKey !== ev.custodian) {
+      toast(`[REVERT] NotAuthorized(): Only proposing Court or active Custodian can cancel proposal!`, "error");
+      return;
+    }
+
+    ev.disposalProposer = null;
+    ev.disposalReason = "";
+    currentBlock++;
+
+    state.auditTrail.push({
+      block: currentBlock,
+      event: "DisposalCancelled",
+      by: currentPersonaKey,
+      detail: `${PERSONAS[currentPersonaKey].role} cancelled pending expungement proposal`,
+      time: new Date().toISOString().replace("T", " ").slice(0, 19)
+    });
+
+    updatePersonaDisplay();
+    toast(`↩️ Expungement proposal cancelled. Evidence remains active.`, "info");
   });
 
   // Register Tab Drag & Drop
