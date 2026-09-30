@@ -20,11 +20,13 @@ chaincustody/
 ├── client/
 │   ├── crypto.js                SHA-256 hash, AES-256-GCM encrypt/decrypt, RSA key wrap/unwrap
 │   ├── merkle.js                Cryptographic Merkle Tree for bulk evidence dossiers & proofs
+│   ├── eip712.js                EIP-712 typed structured data signing for gasless attestations
 │   ├── storage.js               Off-chain storage: local content-addressed sim, or real IPFS
 │   └── selftest.js              Dependency-free test of the crypto+storage+merkle layer
 ├── scripts/
 │   ├── demo.js                  Full end-to-end walkthrough (deploy → register → grant →
 │   │                             access → tamper attempts → revoke → custody transfer → audit)
+│   ├── audit_suite.js           Unified automated forensic audit suite (all 9 subsystems)
 │   ├── deploy.js                Deploy to a network, save the address
 │   ├── benchmark.js             Gas cost per operation + L2 vs L1 economic analysis
 │   ├── server.js                Zero-dependency local server for the web dashboard
@@ -35,7 +37,7 @@ chaincustody/
 │   ├── style.css                Modern dark forensic theme
 │   └── app.js                   Web Crypto API + simulation & Web3 MetaMask provider
 ├── test/
-│   └── ChainCustody.test.js     Hardhat/Mocha/Chai unit tests
+│   └── ChainCustody.test.js     Hardhat/Mocha/Chai unit tests (55 passing, 100% coverage)
 ├── baseline/
 │   ├── baseline_benchmark.py    Review 2: existing-solution baselines (centralized store,
 │   │                             hash-chained ledger) + tamper/perf benchmark
@@ -44,7 +46,8 @@ chaincustody/
 │   └── evidence_report.txt      Fictional sample file used by the demo
 ├── results/                     benchmark.js writes gas-report.json here
 ├── deployments/                 deploy.js writes {network}.json here
-├── docs/                        (notes/diagrams, optional)
+├── docs/
+│   └── CAPSTONE_PRESENTATION.md Complete 10-slide script, live demo playbook & viva FAQ
 ├── hardhat.config.js
 ├── package.json
 ├── .env.example                 Copy to .env only if deploying to Polygon Amoy
@@ -110,7 +113,17 @@ npm run verify
 # 8. Generate Court-Admissible Certificate — formal proof for legal proceedings
 npm run certify
 # (Writes results/CERTIFICATE_EVIDENCE_1.md)
+
+# 9. Unified Forensic Audit Suite — end-to-end audit across all 9 protocols
+npm run audit-suite
 ```
+
+### Capstone Presentation & Defense Guide
+For your final university / committee presentation, see [`docs/CAPSTONE_PRESENTATION.md`](docs/CAPSTONE_PRESENTATION.md):
+- **10-Slide Script**: Spoken narration, slide breakdown, and visual diagram layout.
+- **5-Minute Live Demo Playbook**: Exact sequence of terminal commands and UI actions.
+- **Viva Defense FAQ**: 10 rigorous technical & legal questions with bulletproof model answers.
+- **Architectural Comparison**: Matrix contrasting Traditional LIMS vs Hyperledger Fabric vs ChainCustody L2.
 
 `npm run demo` is the one to show your faculty live: it deploys the contract,
 registers four parties, hashes/encrypts/registers a sample evidence file, grants the

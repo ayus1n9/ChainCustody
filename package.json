@@ -1,6 +1,6 @@
 {
   "name": "chaincustody",
-  "version": "0.9.0",
+  "version": "1.0.0",
   "description": "Blockchain-based chain of custody for digital evidence (capstone project)",
   "private": true,
   "scripts": {
@@ -15,7 +15,8 @@
     "deploy:amoy": "hardhat run scripts/deploy.js --network amoy",
     "ui": "node scripts/server.js",
     "verify": "hardhat run scripts/verify.js",
-    "certify": "hardhat run scripts/certify.js"
+    "certify": "hardhat run scripts/certify.js",
+    "audit-suite": "hardhat run scripts/audit_suite.js"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
