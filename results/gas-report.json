@@ -50,10 +50,67 @@
       "registerGas": 395049
     }
   ],
-  "assumptions": {
-    "gasPriceGwei": null,
-    "tokenPriceUsd": null
+  "parameters": {
+    "l1": {
+      "name": "Ethereum Mainnet",
+      "gasGwei": 25,
+      "tokenPriceUsd": 3000
+    },
+    "l2": {
+      "name": "Polygon (Amoy / PoS)",
+      "gasGwei": 30,
+      "tokenPriceUsd": 0.5
+    }
   },
-  "costUsd": {},
-  "note": "Local Hardhat chain; gas exact, latency not representative."
+  "comparison": {
+    "deployment": {
+      "meanGas": 1175994,
+      "costL1": 88.19955,
+      "costL2": 0.01763991,
+      "savingsRatio": 5000
+    },
+    "registerEvidence": {
+      "meanGas": 395133,
+      "costL1": 29.634975,
+      "costL2": 0.005926995,
+      "savingsRatio": 5000
+    },
+    "grantAccess": {
+      "meanGas": 257847,
+      "costL1": 19.338525,
+      "costL2": 0.0038677050000000004,
+      "savingsRatio": 5000
+    },
+    "logAccess": {
+      "meanGas": 27728,
+      "costL1": 2.0796,
+      "costL2": 0.00041592,
+      "savingsRatio": 5000
+    },
+    "revokeAccess": {
+      "meanGas": 64047,
+      "costL1": 4.8035250000000005,
+      "costL2": 0.0009607050000000001,
+      "savingsRatio": 5000
+    },
+    "transferCustody": {
+      "meanGas": 260979,
+      "costL1": 19.573425,
+      "costL2": 0.003914685,
+      "savingsRatio": 5000
+    }
+  },
+  "monthlyWorkload": {
+    "volume": {
+      "registerEvidence": 1000,
+      "grantAccess": 2000,
+      "logAccess": 4000,
+      "revokeAccess": 500,
+      "transferCustody": 1000
+    },
+    "costL1": 98605.6125,
+    "costL2": 19.7211225,
+    "savingsUsd": 98585.8913775
+  },
+  "note": "EVM gas is deterministic and identical across chains; cost difference stems from token price and network base fee."
 }
