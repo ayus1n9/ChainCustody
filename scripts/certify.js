@@ -37,7 +37,17 @@ async function main() {
     const cid = "sim-33e66ceb2ef22b66238d81ac98b15e478546b283d5a5747f3b89fa651f89";
     const key = "0x" + "ab".repeat(64);
 
-    await contract.connect(inv).registerEvidence(sampleHash, cid, key);
+    await contract.connect(inv).registerEvidenceWithMetadata(
+      sampleHash,
+      cid,
+      key,
+      {
+        deviceSerial: "SAMSUNG-980PRO-NVMe-1TB-SN5GANG0N10423",
+        acquisitionTool: "FTK Imager v4.7.1.2 (Hardware Write-Blocker)",
+        officerBadge: "DET-7749-CYBER",
+        jurisdiction: "US-CA-SFO-CCU"
+      }
+    );
     await contract.connect(inv).grantAccess(1, lab.address, key);
     await contract.connect(lab).logAccess(1);
     await contract.connect(inv).transferCustody(1, court.address, key);
@@ -45,6 +55,7 @@ async function main() {
   }
 
   const [anchoredHash, cid, custodian, createdAt] = await contract.getEvidence(evidenceId);
+  const meta = await contract.getForensicMetadata(evidenceId);
   const contractAddress = await contract.getAddress();
   const isSealed = await contract.isSealed(evidenceId);
   const sealReason = isSealed ? await contract.sealReason(evidenceId) : "None (Unsealed / Active Custody)";
@@ -53,6 +64,7 @@ async function main() {
   // Query events for this evidence ID
   const eventNames = [
     "EvidenceRegistered",
+    "EvidenceMetadataAnchored",
     "AccessGranted",
     "AccessRevoked",
     "AccessLogged",
@@ -82,6 +94,9 @@ async function main() {
     if (l.eventName === "EvidenceRegistered") {
       actor = a[3];
       details = `Registered ground truth hash: ${a[1].slice(0, 14)}...`;
+    } else if (l.eventName === "EvidenceMetadataAnchored") {
+      actor = custodian;
+      details = `Anchored Hardware Serial: ${a[1]} | Tool: ${a[2]} | Officer: ${a[3]}`;
     } else if (l.eventName === "AccessGranted" || l.eventName === "AccessRevoked") {
       actor = a[1];
       details = `Recipient: ${a[2]}`;
@@ -136,6 +151,18 @@ async function main() {
 | **Judicial Sealing Status** | **${isSealed ? "🔒 SEALED BY COURT ORDER" : "🟢 UNSEALED (ACTIVE CUSTODY)"}** |
 | **Court Docket / Order Rationale** | *${sealReason}* |
 | **Evidence Lifecycle / Expungement** | **${isDisposed ? "🔥 LAWFULLY DISPOSED (KEYS SHREDDED)" : "🟢 ACTIVE EVIDENCE RECORD"}** |
+
+---
+
+### 1.1 PHYSICAL HARDWARE & FORENSIC ACQUISITION PROVENANCE (ISO/IEC 27037)
+
+| Property | Value |
+| :--- | :--- |
+| **Seized Hardware Serial Number** | \`${meta.deviceSerial || "Not Recorded"}\` |
+| **Forensic Acquisition Tool & Version** | \`${meta.acquisitionTool || "Standard Bit-Stream Imager"}\` |
+| **Seizing Investigator Badge / ID** | \`${meta.officerBadge || "Authorized Examiner"}\` |
+| **Jurisdiction / Department Code** | \`${meta.jurisdiction || "Default Jurisdiction"}\` |
+| **Acquisition Integrity Standard** | ISO/IEC 27037:2012 Hardware Write-Blocked Forensic Acquisition |
 
 ---
 

@@ -141,6 +141,14 @@
             </div>
           </div>
 
+          <!-- Hardware Provenance Card (ISO/IEC 27037) -->
+          <div id="provenanceCard" class="file-details" style="margin-top: 1rem; background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.2);">
+            <h4 style="color: var(--primary); font-size: 0.85rem; margin-bottom: 0.5rem;">🏷️ Hardware Provenance (ISO/IEC 27037)</h4>
+            <div class="detail-row"><span>Device Serial:</span> <code id="dispDeviceSerial" class="hash-code">SAMSUNG-980PRO-NVMe-1TB-SN5GANG0N10423</code></div>
+            <div class="detail-row"><span>Acquisition Tool:</span> <span id="dispAcquisitionTool">FTK Imager v4.7.1.2 (Hardware Write-Blocker)</span></div>
+            <div class="detail-row"><span>Seizing Officer:</span> <span id="dispOfficerBadge">DET-7749-CYBER [US-CA-SFO-CCU]</span></div>
+          </div>
+
           <div class="action-footer">
             <button id="logAccessBtn" class="btn btn-primary" title="Record in the audit trail that you accessed this evidence">
               ✍️ Record Access in Audit Log
@@ -182,7 +190,30 @@
           <input type="text" id="caseTitle" value="Disk Image - FIR-2026-0042 (Cyber Crime Unit)" class="input-field">
         </div>
 
-        <div class="form-actions">
+        <!-- ISO/IEC 27037 Hardware Acquisition Provenance Inputs -->
+        <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+          <h4 style="font-size: 0.9rem; color: var(--primary); margin-bottom: 0.75rem;">🏷️ Forensic Acquisition Metadata (ISO/IEC 27037)</h4>
+          <div class="form-group">
+            <label for="regDeviceSerial">Hardware Device Serial / Storage UUID:</label>
+            <input type="text" id="regDeviceSerial" class="input-field" value="SAMSUNG-980PRO-NVMe-1TB-SN5GANG0N10423">
+          </div>
+          <div class="form-group">
+            <label for="regAcquisitionTool">Forensic Tool & Version:</label>
+            <input type="text" id="regAcquisitionTool" class="input-field" value="FTK Imager v4.7.1.2 (Hardware Write-Blocker)">
+          </div>
+          <div class="two-column-layout" style="gap: 1rem;">
+            <div class="form-group">
+              <label for="regOfficerBadge">Investigator Badge ID:</label>
+              <input type="text" id="regOfficerBadge" class="input-field" value="DET-7749-CYBER">
+            </div>
+            <div class="form-group">
+              <label for="regJurisdiction">Jurisdiction Code:</label>
+              <input type="text" id="regJurisdiction" class="input-field" value="US-CA-SFO-CCU">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions" style="margin-top: 1.5rem;">
           <button id="btnRegisterOnChain" class="btn btn-primary btn-lg" disabled>
             🔒 Encrypt & Anchor on Blockchain
           </button>

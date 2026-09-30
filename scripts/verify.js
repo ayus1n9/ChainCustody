@@ -66,18 +66,34 @@ async function main() {
     // Seed baseline sample evidence if verifying ID #1
     const sampleRaw = fs.readFileSync(path.join(__dirname, "..", "sample", "evidence_report.txt"));
     const sampleHash = sha256(sampleRaw);
-    await contract.connect(inv).registerEvidence(sampleHash, "sim-sample-42f11e", "0x" + "ab".repeat(64));
+    await contract.connect(inv).registerEvidenceWithMetadata(
+      sampleHash,
+      "sim-sample-42f11e",
+      "0x" + "ab".repeat(64),
+      {
+        deviceSerial: "SAMSUNG-980PRO-NVMe-1TB-SN5GANG0N10423",
+        acquisitionTool: "FTK Imager v4.7.1.2 (Hardware Write-Blocker)",
+        officerBadge: "DET-7749-CYBER",
+        jurisdiction: "US-CA-SFO-CCU"
+      }
+    );
     console.log(`  Contract Address  : ${await contract.getAddress()} (Hardhat In-Process)`);
   }
 
   try {
     const [anchoredHash, cid, custodian, createdAt] = await contract.getEvidence(evidenceId);
+    const meta = await contract.getForensicMetadata(evidenceId);
     const isValid = await contract.verifyIntegrity(evidenceId, computedHash);
 
     console.log(`  Anchored Hash     : ${anchoredHash}`);
     console.log(`  Storage CID       : ${cid}`);
     console.log(`  Current Custodian : ${custodian}`);
     console.log(`  Registered At     : ${new Date(Number(createdAt) * 1000).toUTCString()}`);
+    if (meta.deviceSerial) {
+      console.log(`  Hardware Serial   : ${B}${meta.deviceSerial}${R}`);
+      console.log(`  Acquisition Tool  : ${meta.acquisitionTool}`);
+      console.log(`  Seizing Officer   : ${meta.officerBadge} [Jurisdiction: ${meta.jurisdiction}]`);
+    }
     console.log(`${B}----------------------------------------------------------------------${R}`);
 
     if (isValid) {

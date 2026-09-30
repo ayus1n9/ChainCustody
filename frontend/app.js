@@ -73,6 +73,12 @@ const state = {
       isDisposed: false,
       disposalProposer: null,
       disposalReason: "",
+      metadata: {
+        deviceSerial: "SAMSUNG-980PRO-NVMe-1TB-SN5GANG0N10423",
+        acquisitionTool: "FTK Imager v4.7.1.2 (Hardware Write-Blocker)",
+        officerBadge: "DET-7749-CYBER",
+        jurisdiction: "US-CA-SFO-CCU"
+      },
       permissions: {
         investigator: true,
         lab: true,
@@ -88,6 +94,13 @@ const state = {
       event: "EvidenceRegistered",
       by: "investigator",
       detail: "evidence registered by Investigator (hash 0x90acf3be...)",
+      time: "2026-09-30 16:05:51"
+    },
+    {
+      block: 6,
+      event: "EvidenceMetadataAnchored",
+      by: "investigator",
+      detail: "Hardware Anchored: SAMSUNG-980PRO-NVMe-1TB-SN5GANG0N10423 | Tool: FTK Imager v4.7.1.2 | Officer: DET-7749-CYBER",
       time: "2026-09-30 16:05:51"
     },
     {
@@ -217,6 +230,19 @@ function updateTopStats() {
   document.getElementById("auditLogCountDisplay").textContent = state.auditTrail.length + " Events";
   document.getElementById("onChainHashDisplay").textContent = ev.fileHash;
 
+  // Provenance Card (ISO/IEC 27037)
+  const provCard = document.getElementById("provenanceCard");
+  if (provCard) {
+    if (ev.metadata && ev.metadata.deviceSerial) {
+      provCard.style.display = "block";
+      document.getElementById("dispDeviceSerial").textContent = ev.metadata.deviceSerial;
+      document.getElementById("dispAcquisitionTool").textContent = ev.metadata.acquisitionTool || "Standard Bit-Stream Imager";
+      document.getElementById("dispOfficerBadge").textContent = `${ev.metadata.officerBadge || "Officer"} [${ev.metadata.jurisdiction || "Default"}]`;
+    } else {
+      provCard.style.display = "none";
+    }
+  }
+
   const legalStatus = document.getElementById("legalStatusDisplay");
   const legalSub = document.getElementById("legalStatusSub");
   if (legalStatus && legalSub) {
@@ -262,6 +288,7 @@ function renderAuditTrail() {
 
   const icons = {
     EvidenceRegistered: "📦",
+    EvidenceMetadataAnchored: "🏷️",
     AccessGranted: "🔑",
     AccessLogged: "👁️",
     CustodyTransferred: "🔄",
@@ -743,6 +770,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const newId = Object.keys(state.evidence).length + 1;
     currentBlock++;
 
+    const devSerial = document.getElementById("regDeviceSerial")?.value.trim() || "";
+    const acqTool = document.getElementById("regAcquisitionTool")?.value.trim() || "";
+    const offBadge = document.getElementById("regOfficerBadge")?.value.trim() || "";
+    const juris = document.getElementById("regJurisdiction")?.value.trim() || "";
+
     state.evidence[newId] = {
       id: newId,
       title: document.getElementById("caseTitle").value || pendingRegData.name,
@@ -751,6 +783,17 @@ document.addEventListener("DOMContentLoaded", () => {
       custodian: "investigator",
       registeredBy: "investigator",
       createdAtBlock: currentBlock,
+      isSealed: false,
+      sealReason: "",
+      isDisposed: false,
+      disposalProposer: null,
+      disposalReason: "",
+      metadata: {
+        deviceSerial: devSerial,
+        acquisitionTool: acqTool,
+        officerBadge: offBadge,
+        jurisdiction: juris
+      },
       permissions: {
         investigator: true,
         lab: false,
@@ -766,6 +809,16 @@ document.addEventListener("DOMContentLoaded", () => {
       detail: `Evidence #${newId} registered (hash ${pendingRegData.hash.slice(0, 12)}...)`,
       time: new Date().toISOString().replace("T", " ").slice(0, 19)
     });
+
+    if (devSerial) {
+      state.auditTrail.push({
+        block: currentBlock,
+        event: "EvidenceMetadataAnchored",
+        by: "investigator",
+        detail: `Hardware Anchored: ${devSerial} | Tool: ${acqTool} | Officer: ${offBadge} (${juris})`,
+        time: new Date().toISOString().replace("T", " ").slice(0, 19)
+      });
+    }
 
     // Add to verify select
     const sel = document.getElementById("verifyEvidenceSelect");

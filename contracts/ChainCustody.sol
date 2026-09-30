@@ -19,6 +19,13 @@ contract ChainCustody {
         uint64 createdAt;
     }
 
+    struct ForensicMetadata {
+        string deviceSerial;    // Seized hardware serial / device UUID
+        string acquisitionTool; // Forensic software name & version (e.g. FTK Imager v4.7.1)
+        string officerBadge;    // Credential / Badge ID of the acquiring officer
+        string jurisdiction;    // Law enforcement jurisdiction code (e.g. "US-CA-SFO-CCU")
+    }
+
     // ---------------------------------------------------------------- storage
     address public immutable admin;
     uint256 public evidenceCount;
@@ -26,6 +33,7 @@ contract ChainCustody {
     mapping(address => Role) public roleOf;
     mapping(bytes32 => uint256) public idByHash;                       // duplicate guard
     mapping(uint256 => Evidence) private _evidence;
+    mapping(uint256 => ForensicMetadata) private _metadata;            // hardware acquisition metadata
     mapping(uint256 => mapping(address => bool)) public hasAccess;
     mapping(uint256 => mapping(address => bytes)) private _wrappedKey; // AES key, encrypted per recipient
     mapping(uint256 => address) public proposedCustodianOf;            // pending 2-step custody transfer
@@ -59,6 +67,14 @@ contract ChainCustody {
     // Events form the immutable audit trail of the chain of custody.
     event PartyRegistered(address indexed party, Role role);
     event EvidenceRegistered(uint256 indexed id, bytes32 indexed fileHash, string cid, address indexed custodian, uint256 timestamp);
+    event EvidenceMetadataAnchored(
+        uint256 indexed id,
+        string deviceSerial,
+        string acquisitionTool,
+        string officerBadge,
+        string jurisdiction,
+        uint256 timestamp
+    );
     event AccessGranted(uint256 indexed id, address indexed by, address indexed to, uint256 timestamp);
     event AccessRevoked(uint256 indexed id, address indexed by, address indexed from, uint256 timestamp);
     event AccessLogged(uint256 indexed id, address indexed party, uint256 timestamp);
@@ -113,7 +129,7 @@ contract ChainCustody {
     /// @param cid         content ID of the encrypted file in off-chain storage
     /// @param wrappedKey  the AES key encrypted for the caller's public key
     function registerEvidence(bytes32 fileHash, string calldata cid, bytes calldata wrappedKey)
-        external
+        public
         returns (uint256 id)
     {
         if (roleOf[msg.sender] != Role.Investigator) revert NotAuthorized();
@@ -128,6 +144,30 @@ contract ChainCustody {
         _wrappedKey[id][msg.sender] = wrappedKey;
 
         emit EvidenceRegistered(id, fileHash, cid, msg.sender, block.timestamp);
+    }
+
+    /// @notice Registers evidence along with hardware provenance and forensic acquisition metadata.
+    /// @param fileHash    SHA-256 of the original file (computed client-side)
+    /// @param cid         content ID of the encrypted file in off-chain storage
+    /// @param wrappedKey  the AES key encrypted for the caller's public key
+    /// @param metadata    hardware serial, tool version, officer badge, and jurisdiction
+    function registerEvidenceWithMetadata(
+        bytes32 fileHash,
+        string calldata cid,
+        bytes calldata wrappedKey,
+        ForensicMetadata calldata metadata
+    ) external returns (uint256 id) {
+        id = registerEvidence(fileHash, cid, wrappedKey);
+        _metadata[id] = metadata;
+
+        emit EvidenceMetadataAnchored(
+            id,
+            metadata.deviceSerial,
+            metadata.acquisitionTool,
+            metadata.officerBadge,
+            metadata.jurisdiction,
+            block.timestamp
+        );
     }
 
     /// @notice Custodian grants a registered party access (and supplies the AES key wrapped for them).
@@ -342,4 +382,16 @@ contract ChainCustody {
         }
         return computedHash == _evidence[id].fileHash;
     }
+
+    /// @notice Retrieves hardware device provenance and forensic acquisition metadata for an evidence item.
+    /// @param id Evidence identifier
+    function getForensicMetadata(uint256 id)
+        external
+        view
+        exists(id)
+        returns (ForensicMetadata memory)
+    {
+        return _metadata[id];
+    }
 }
+

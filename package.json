@@ -1,6 +1,6 @@
 {
   "name": "chaincustody",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Blockchain-based chain of custody for digital evidence (capstone project)",
   "private": true,
   "scripts": {

@@ -61,6 +61,7 @@ custodian, and custody itself can be **transferred** via direct or **2-step hand
 (`proposeCustodyTransfer` → `acceptCustody`).
 
 Additionally, the contract implements:
+- **Forensic Hardware Provenance & Metadata Anchoring** (`registerEvidenceWithMetadata` / `getForensicMetadata`): complies with **ISO/IEC 27037:2012** by binding the physical device serial number (e.g. SSD serial / NVMe UUID), forensic software tool & version, and seizing officer badge ID directly to the on-chain evidence record.
 - **Judicial Evidence Sealing & Archival Protocol** (`sealEvidence` / `unsealEvidence`): only the presiding Court Magistrate can issue formal impoundment orders, freezing all custody transfers and key grants to guarantee trial integrity.
 - **Multi-Party Expungement & Key Shredding Protocol** (`proposeDisposal` → `confirmDisposal`): prevents unilateral evidence spoliation. Requires Court judicial decree + Active Custodian concurrence to permanently shred AES decryption keys and clear off-chain storage pointers while preserving the immutable SHA-256 hash anchor and audit trail.
 

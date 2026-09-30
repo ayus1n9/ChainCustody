@@ -462,7 +462,68 @@ describe("ChainCustody", () => {
       await expect(c.connect(investigator).confirmDisposal(1)).to.be.revertedWithCustomError(c, "EvidenceIsDisposed");
     });
   });
+
+  describe("forensic hardware provenance & metadata anchoring", () => {
+    const meta = {
+      deviceSerial: "SAMSUNG-980PRO-NVMe-1TB-S5GANG0N10423",
+      acquisitionTool: "FTK Imager v4.7.1.2 (Write-Blocker Hardware Bridged)",
+      officerBadge: "DET-7749-CYBER",
+      jurisdiction: "US-CA-SFO-CCU"
+    };
+
+    it("registers evidence with hardware provenance metadata and emits event", async () => {
+      const { c, investigator } = await loadFixture(deployFixture);
+      const testHash = ethers.id("disk_image_raw");
+      const cid = "ipfs://QmForensicEvidenceBlob123";
+
+      await expect(c.connect(investigator).registerEvidenceWithMetadata(testHash, cid, KEY, meta))
+        .to.emit(c, "EvidenceMetadataAnchored")
+        .withArgs(1, meta.deviceSerial, meta.acquisitionTool, meta.officerBadge, meta.jurisdiction, anyValue);
+
+      const savedMeta = await c.getForensicMetadata(1);
+      expect(savedMeta.deviceSerial).to.equal(meta.deviceSerial);
+      expect(savedMeta.acquisitionTool).to.equal(meta.acquisitionTool);
+      expect(savedMeta.officerBadge).to.equal(meta.officerBadge);
+      expect(savedMeta.jurisdiction).to.equal(meta.jurisdiction);
+
+      const [anchoredHash, savedCid, custodian] = await c.getEvidence(1);
+      expect(anchoredHash).to.equal(testHash);
+      expect(savedCid).to.equal(cid);
+      expect(custodian).to.equal(investigator.address);
+    });
+
+    it("rejects metadata registration by non-investigators or duplicates", async () => {
+      const { c, lab, court, investigator } = await loadFixture(deployFixture);
+      const testHash = ethers.id("sample_evidence");
+      await expect(c.connect(lab).registerEvidenceWithMetadata(testHash, "cid", KEY, meta))
+        .to.be.revertedWithCustomError(c, "NotAuthorized");
+      await expect(c.connect(court).registerEvidenceWithMetadata(testHash, "cid", KEY, meta))
+        .to.be.revertedWithCustomError(c, "NotAuthorized");
+
+      await c.connect(investigator).registerEvidenceWithMetadata(testHash, "cid", KEY, meta);
+      await expect(c.connect(investigator).registerEvidenceWithMetadata(testHash, "cid2", KEY, meta))
+        .to.be.revertedWithCustomError(c, "AlreadyRegistered");
+    });
+
+    it("returns default empty strings for evidence registered without metadata", async () => {
+      const { c, investigator } = await loadFixture(deployFixture);
+      const testHash = ethers.id("raw_file_without_meta");
+      await c.connect(investigator).registerEvidence(testHash, "cid", KEY);
+
+      const savedMeta = await c.getForensicMetadata(1);
+      expect(savedMeta.deviceSerial).to.equal("");
+      expect(savedMeta.acquisitionTool).to.equal("");
+      expect(savedMeta.officerBadge).to.equal("");
+      expect(savedMeta.jurisdiction).to.equal("");
+    });
+
+    it("reverts getForensicMetadata on non-existent evidence id", async () => {
+      const { c } = await loadFixture(deployFixture);
+      await expect(c.getForensicMetadata(999)).to.be.revertedWithCustomError(c, "EvidenceNotFound");
+    });
+  });
 });
+
 
 
 
