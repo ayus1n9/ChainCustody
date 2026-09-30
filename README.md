@@ -25,7 +25,12 @@ chaincustody/
 │   ├── demo.js                  Full end-to-end walkthrough (deploy → register → grant →
 │   │                             access → tamper attempts → revoke → custody transfer → audit)
 │   ├── deploy.js                Deploy to a network, save the address
-│   └── benchmark.js             Gas cost per operation + O(1) scaling check
+│   ├── benchmark.js             Gas cost per operation + L2 vs L1 economic analysis
+│   └── server.js                Zero-dependency local server for the web dashboard
+├── frontend/
+│   ├── index.html               Web dashboard (role switcher, verify, custody, timeline)
+│   ├── style.css                Modern dark forensic theme
+│   └── app.js                   Web Crypto API + simulation & Web3 MetaMask provider
 ├── test/
 │   └── ChainCustody.test.js     Hardhat/Mocha/Chai unit tests
 ├── baseline/
@@ -79,8 +84,12 @@ npm test
 # 4. Run the full end-to-end demo on Hardhat's in-process chain (no wallet/faucet needed)
 npm run demo
 
-# 5. Gas benchmark — per-operation cost, and confirms gas doesn't grow with registry size
+# 5. Gas benchmark — per-operation cost, L2 vs L1 economic analysis & O(1) scaling
 npm run benchmark
+
+# 6. Interactive Web Dashboard — visual role switching, drag-and-drop verification & timeline
+npm run ui
+# (Opens http://localhost:3000)
 ```
 
 `npm run demo` is the one to show your faculty live: it deploys the contract,

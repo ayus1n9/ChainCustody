@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChainCustody — Digital Evidence Chain of Custody</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Ethers.js v6 UMD -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.2/ethers.umd.min.js"></script>
+</head>
+<body>
+  <!-- Header / Navigation -->
+  <header class="app-header">
+    <div class="header-brand">
+      <div class="logo-icon">🛡️</div>
+      <div>
+        <h1>ChainCustody</h1>
+        <p class="subtitle">Decentralized Evidence Provenance & Audit Trail</p>
+      </div>
+    </div>
+
+    <div class="header-controls">
+      <!-- Persona Switcher -->
+      <div class="persona-selector">
+        <label for="personaSelect">Active Role:</label>
+        <select id="personaSelect">
+          <option value="investigator">👮 Investigator (Police)</option>
+          <option value="lab">🔬 Forensic Lab</option>
+          <option value="court">⚖️ Court (Judge)</option>
+          <option value="defense">🛡️ Defense Counsel</option>
+          <option value="outsider">👤 Outsider (Unauthorized)</option>
+        </select>
+      </div>
+
+      <!-- Mode Badge -->
+      <div class="mode-badge" id="modeBadge">
+        <span class="pulse-dot"></span>
+        <span id="modeText">Demo Simulator</span>
+      </div>
+
+      <button id="connectWalletBtn" class="btn btn-secondary">Connect Wallet</button>
+    </div>
+  </header>
+
+  <!-- Notification Bar -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Main Container -->
+  <main class="main-container">
+    <!-- Quick Status Cards -->
+    <section class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-label">Active Role</span>
+        <span class="stat-val" id="activeRoleDisplay">Investigator</span>
+        <span class="stat-sub" id="activeAddressDisplay">0xInvestigator...</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Registered Evidence</span>
+        <span class="stat-val" id="evidenceCountDisplay">1 Item</span>
+        <span class="stat-sub">SHA-256 anchored on-chain</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Current Custodian</span>
+        <span class="stat-val" id="currentCustodianDisplay">Investigator</span>
+        <span class="stat-sub">Sole authority to transfer/grant</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Audit Log Count</span>
+        <span class="stat-val" id="auditLogCountDisplay">6 Events</span>
+        <span class="stat-sub">Immutable on-chain history</span>
+      </div>
+    </section>
+
+    <!-- Navigation Tabs -->
+    <nav class="tabs-nav">
+      <button class="tab-btn active" data-tab="verify">🔍 Verify Integrity</button>
+      <button class="tab-btn" data-tab="register">📤 Register Evidence</button>
+      <button class="tab-btn" data-tab="custody">🔄 Custody & Access</button>
+      <button class="tab-btn" data-tab="timeline">📜 Audit Trail</button>
+      <button class="tab-btn" data-tab="tamper">🧪 Tamper Sandbox</button>
+    </nav>
+
+    <!-- TAB 1: Verify Integrity -->
+    <section id="tab-verify" class="tab-content active">
+      <div class="panel-header">
+        <div>
+          <h2>Evidence Integrity Verifier</h2>
+          <p class="panel-desc">Drop any file to compare its cryptographic fingerprint against the blockchain's ground truth.</p>
+        </div>
+        <div class="select-wrapper">
+          <label>Evidence Record:</label>
+          <select id="verifyEvidenceSelect">
+            <option value="1">Evidence #1 (FIR-2026-0042)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="two-column-layout">
+        <div class="card">
+          <h3>1. Drag & Drop File to Verify</h3>
+          <div id="verifyDropZone" class="drop-zone">
+            <div class="drop-icon">📁</div>
+            <p>Drag file here or <span class="highlight">browse</span></p>
+            <input type="file" id="verifyFileInput" hidden>
+            <span class="file-hint">Drop the original or a modified file to test verification</span>
+          </div>
+
+          <div id="verifyFileDetails" class="file-details hidden">
+            <div class="detail-row"><span>File Name:</span> <strong id="vFileName">-</strong></div>
+            <div class="detail-row"><span>Size:</span> <span id="vFileSize">-</span></div>
+            <div class="detail-row"><span>Computed SHA-256:</span> <code id="vFileHash" class="hash-code">-</code></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>2. On-Chain Ground Truth vs Local File</h3>
+          <div class="comparison-box">
+            <div class="hash-row">
+              <span class="hash-label">⛓️ Anchored On-Chain:</span>
+              <code id="onChainHashDisplay" class="hash-code">0x90acf3be541bc1d27c273001ed756e4ed1eac3e6e14d16dcb484454038bccc68</code>
+            </div>
+            <div class="hash-row">
+              <span class="hash-label">📄 Uploaded File:</span>
+              <code id="uploadedHashDisplay" class="hash-code">Drop a file to compute</code>
+            </div>
+
+            <div id="verificationResultBox" class="result-box idle">
+              <div class="result-icon">⏳</div>
+              <div class="result-text">
+                <h4>Awaiting File</h4>
+                <p>Upload a file to trigger automated cryptographic verification.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="action-footer">
+            <button id="logAccessBtn" class="btn btn-primary" title="Record in the audit trail that you accessed this evidence">
+              ✍️ Record Access in Audit Log
+            </button>
+            <button id="quickSampleBtn" class="btn btn-outline">Load Original Sample</button>
+            <button id="quickTamperBtn" class="btn btn-outline-danger">Load Tampered Sample</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: Register Evidence -->
+    <section id="tab-register" class="tab-content">
+      <div class="panel-header">
+        <div>
+          <h2>Register Digital Evidence</h2>
+          <p class="panel-desc">Only authorized Investigators can initialize evidence records in the chain of custody.</p>
+        </div>
+      </div>
+
+      <div class="card max-w-700">
+        <div id="registerDropZone" class="drop-zone">
+          <div class="drop-icon">🛡️</div>
+          <p>Drag evidence file here or <span class="highlight">browse</span></p>
+          <input type="file" id="registerFileInput" hidden>
+          <span class="file-hint">Disk images, mobile extractions, PDFs, forensic logs</span>
+        </div>
+
+        <div id="regDetails" class="file-details hidden">
+          <div class="detail-row"><span>File Name:</span> <strong id="rFileName">-</strong></div>
+          <div class="detail-row"><span>File Size:</span> <span id="rFileSize">-</span></div>
+          <div class="detail-row"><span>SHA-256 Hash:</span> <code id="rFileHash" class="hash-code">-</code></div>
+          <div class="detail-row"><span>Simulated IPFS CID:</span> <code id="rFileCid" class="hash-code">-</code></div>
+        </div>
+
+        <div class="form-group" style="margin-top: 1.5rem;">
+          <label for="caseTitle">Case / Evidence Identifier</label>
+          <input type="text" id="caseTitle" value="Disk Image - FIR-2026-0042 (Cyber Crime Unit)" class="input-field">
+        </div>
+
+        <div class="form-actions">
+          <button id="btnRegisterOnChain" class="btn btn-primary btn-lg" disabled>
+            🔒 Encrypt & Anchor on Blockchain
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: Custody & Access Control -->
+    <section id="tab-custody" class="tab-content">
+      <div class="panel-header">
+        <div>
+          <h2>Chain of Custody Handover & Permissions</h2>
+          <p class="panel-desc">Manage the sequential chain of possession and role-based access grants.</p>
+        </div>
+      </div>
+
+      <div class="two-column-layout">
+        <!-- Custody Transfer -->
+        <div class="card">
+          <div class="card-badge">Current Custodian Only</div>
+          <h3>🔄 Transfer Custody (The Chain)</h3>
+          <p class="card-desc">Transfer legal and physical custody of Evidence #1 to another registered party.</p>
+
+          <div class="form-group">
+            <label>Transfer Custody To:</label>
+            <select id="transferTargetSelect" class="input-field">
+              <option value="court">⚖️ Court (Judge)</option>
+              <option value="lab">🔬 Forensic Lab</option>
+              <option value="investigator">👮 Investigator</option>
+            </select>
+          </div>
+
+          <button id="btnTransferCustody" class="btn btn-primary">Execute Custody Transfer</button>
+        </div>
+
+        <!-- Access Control -->
+        <div class="card">
+          <div class="card-badge">Role-Based Access</div>
+          <h3>🔑 Manage Access Grants</h3>
+          <p class="card-desc">Grant or revoke permission to inspect the encrypted evidence.</p>
+
+          <div class="form-group">
+            <label>Target Party:</label>
+            <select id="accessTargetSelect" class="input-field">
+              <option value="lab">🔬 Forensic Lab</option>
+              <option value="defense">🛡️ Defense Counsel</option>
+            </select>
+          </div>
+
+          <div class="btn-group">
+            <button id="btnGrantAccess" class="btn btn-success">Grant Access</button>
+            <button id="btnRevokeAccess" class="btn btn-danger">Revoke Access</button>
+          </div>
+
+          <div class="access-matrix" style="margin-top: 1.5rem;">
+            <h4>Current Access Permissions (Evidence #1):</h4>
+            <ul id="accessStatusList" class="permission-list">
+              <!-- Populated dynamically -->
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: Audit Trail Timeline -->
+    <section id="tab-timeline" class="tab-content">
+      <div class="panel-header">
+        <div>
+          <h2>Immutable Chain of Custody Audit Trail</h2>
+          <p class="panel-desc">Cryptographically guaranteed chronological history reconstructed from on-chain event logs.</p>
+        </div>
+        <button id="btnRefreshAudit" class="btn btn-outline">🔄 Refresh Trail</button>
+      </div>
+
+      <div class="card">
+        <div class="timeline" id="auditTimeline">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: Tamper Sandbox -->
+    <section id="tab-tamper" class="tab-content">
+      <div class="panel-header">
+        <div>
+          <h2>Live Tamper Sandbox</h2>
+          <p class="panel-desc">Simulate realistic cyber-attack scenarios and observe how ChainCustody's 3 defense layers prevent undetectable alterations.</p>
+        </div>
+      </div>
+
+      <div class="tamper-scenarios-grid">
+        <!-- Scenario 1 -->
+        <div class="tamper-card">
+          <div class="tamper-step-num">Layer 1</div>
+          <h3>Storage Bit-Flip Attack</h3>
+          <p>An attacker modifies the stored encrypted file in off-chain storage or disk.</p>
+          <div class="tamper-result" id="res6a">Status: Ready to test</div>
+          <button class="btn btn-outline-danger btn-sm" id="btnSim6a">Simulate Storage Tamper</button>
+          <div class="defense-badge">Caught by: IPFS Content Addressing (CID Mismatch)</div>
+        </div>
+
+        <!-- Scenario 2 -->
+        <div class="tamper-card">
+          <div class="tamper-step-num">Layer 2</div>
+          <h3>Ciphertext Modification</h3>
+          <p>A corrupted storage node bypasses the CID check and returns altered ciphertext.</p>
+          <div class="tamper-result" id="res6b">Status: Ready to test</div>
+          <button class="btn btn-outline-danger btn-sm" id="btnSim6b">Simulate Ciphertext Tamper</button>
+          <div class="defense-badge">Caught by: AES-256-GCM Auth Tag (Decryption Fails)</div>
+        </div>
+
+        <!-- Scenario 3 -->
+        <div class="tamper-card">
+          <div class="tamper-step-num">Layer 3</div>
+          <h3>Malicious Insider Forgery</h3>
+          <p>A rogue analyst with the valid key replaces the file with a forged report, properly encrypted.</p>
+          <div class="tamper-result" id="res6c">Status: Ready to test</div>
+          <button class="btn btn-outline-danger btn-sm" id="btnSim6c">Simulate Insider Forgery</button>
+          <div class="defense-badge highlight-blockchain">Caught by: Blockchain Anchored SHA-256 Hash</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

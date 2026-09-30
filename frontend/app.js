@@ -1,0 +1,537 @@
+/**
+ * ChainCustody Web Dashboard Engine
+ * Browser-native Web Crypto API + Simulation & Web3 Provider Support
+ */
+
+// ---------------------------------------------------------------- Constants & Personas
+const PERSONAS = {
+  investigator: {
+    role: "Investigator",
+    address: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    label: "👮 Police Investigator",
+    badgeClass: "badge-investigator"
+  },
+  lab: {
+    role: "Lab",
+    address: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+    label: "🔬 Forensic Analyst",
+    badgeClass: "badge-lab"
+  },
+  court: {
+    role: "Court",
+    address: "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+    label: "⚖️ Court Magistrate / Judge",
+    badgeClass: "badge-court"
+  },
+  defense: {
+    role: "Defense",
+    address: "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+    label: "🛡️ Defense Counsel",
+    badgeClass: "badge-defense"
+  },
+  outsider: {
+    role: "None",
+    address: "0x9965507D1a55bcC2695C58ba16FB37d819B0A4df",
+    label: "👤 Unauthorized Outsider",
+    badgeClass: "badge-outsider"
+  }
+};
+
+const SAMPLE_TEXT = `DIGITAL FORENSIC EXAMINATION REPORT
+Case: FIR-2026-0042 (Cyber Crime Unit)
+Evidence: SanDisk Extreme SSD 1TB (Serial #SD-98214)
+Seized from: Subject workstation at 10.0.4.12
+Acquisition Hash: Verified unaltered
+Status: INITIAL ACQUISITION COMPLETE
+Date: 2026-09-30`;
+
+const SAMPLE_TAMPERED = `DIGITAL FORENSIC EXAMINATION REPORT
+Case: FIR-2026-0042 (Cyber Crime Unit)
+Evidence: SanDisk Extreme SSD 1TB (Serial #SD-98214)
+Seized from: Subject workstation at 10.0.4.12
+Acquisition Hash: [MODIFIED BY ATTACKER]
+Status: EVIDENCE PURGED
+Date: 2026-09-30`;
+
+// ---------------------------------------------------------------- State
+let currentPersonaKey = "investigator";
+let currentEvidenceId = 1;
+let currentBlock = 18;
+
+const state = {
+  evidence: {
+    1: {
+      id: 1,
+      title: "Disk Image - FIR-2026-0042 (Cyber Crime Unit)",
+      fileHash: "0x90acf3be541bc1d27c273001ed756e4ed1eac3e6e14d16dcb484454038bccc68",
+      cid: "sim-33e66ceb2ef22b66238d81ac98b15e478546b283d5a5747f3b89fa651f89",
+      custodian: "investigator",
+      registeredBy: "investigator",
+      createdAtBlock: 6,
+      permissions: {
+        investigator: true,
+        lab: true,
+        court: false,
+        defense: false,
+        outsider: false
+      }
+    }
+  },
+  auditTrail: [
+    {
+      block: 6,
+      event: "EvidenceRegistered",
+      by: "investigator",
+      detail: "evidence registered by Investigator (hash 0x90acf3be...)",
+      time: "2026-09-30 16:05:51"
+    },
+    {
+      block: 7,
+      event: "AccessGranted",
+      by: "investigator",
+      to: "lab",
+      detail: "Investigator granted access to Lab (AES key wrapped)",
+      time: "2026-09-30 16:05:52"
+    },
+    {
+      block: 8,
+      event: "AccessLogged",
+      by: "lab",
+      detail: "Lab accessed and verified evidence integrity",
+      time: "2026-09-30 16:05:53"
+    }
+  ]
+};
+
+// ---------------------------------------------------------------- Crypto Helpers
+async function computeSha256(buffer) {
+  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return "0x" + hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+function short(addr) {
+  if (!addr) return "";
+  return addr.slice(0, 6) + "..." + addr.slice(-4);
+}
+
+// ---------------------------------------------------------------- UI Updates
+function toast(msg, type = "info") {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = `toast show ${type}`;
+  setTimeout(() => { el.className = "toast"; }, 4000);
+}
+
+function updatePersonaDisplay() {
+  const p = PERSONAS[currentPersonaKey];
+  document.getElementById("activeRoleDisplay").textContent = p.role;
+  document.getElementById("activeAddressDisplay").textContent = short(p.address);
+
+  // Update permissions display
+  renderAccessMatrix();
+  renderAuditTrail();
+  updateTopStats();
+}
+
+function updateTopStats() {
+  const ev = state.evidence[currentEvidenceId];
+  if (!ev) return;
+
+  const custPersona = PERSONAS[ev.custodian];
+  document.getElementById("currentCustodianDisplay").textContent = custPersona ? custPersona.role : ev.custodian;
+  document.getElementById("evidenceCountDisplay").textContent = Object.keys(state.evidence).length + " Item(s)";
+  document.getElementById("auditLogCountDisplay").textContent = state.auditTrail.length + " Events";
+  document.getElementById("onChainHashDisplay").textContent = ev.fileHash;
+}
+
+function renderAccessMatrix() {
+  const ev = state.evidence[currentEvidenceId];
+  const list = document.getElementById("accessStatusList");
+  list.innerHTML = "";
+
+  const roles = ["investigator", "lab", "court", "defense"];
+  roles.forEach(r => {
+    const li = document.createElement("li");
+    li.className = "permission-item";
+    const has = ev.permissions[r];
+    const isCust = ev.custodian === r;
+
+    li.innerHTML = `
+      <span>${PERSONAS[r].label} ${isCust ? '<strong style="color:var(--primary); font-size:0.75rem;">(Custodian)</strong>' : ''}</span>
+      <span class="${has ? 'badge-granted' : 'badge-denied'}">${has ? 'GRANTED' : 'NO ACCESS'}</span>
+    `;
+    list.appendChild(li);
+  });
+}
+
+function renderAuditTrail() {
+  const timeline = document.getElementById("auditTimeline");
+  timeline.innerHTML = "";
+
+  const icons = {
+    EvidenceRegistered: "📦",
+    AccessGranted: "🔑",
+    AccessLogged: "👁️",
+    CustodyTransferred: "🔄",
+    AccessRevoked: "🚫"
+  };
+
+  [...state.auditTrail].reverse().forEach((l, idx) => {
+    const item = document.createElement("div");
+    item.className = "timeline-item";
+
+    const actor = PERSONAS[l.by] ? PERSONAS[l.by].role : l.by;
+    const icon = icons[l.event] || "⚡";
+
+    item.innerHTML = `
+      <div class="timeline-dot"></div>
+      <div class="timeline-meta">
+        <span>Block #${l.block} &bull; ${l.time || 'Confirmed'}</span>
+        <span>Tx: 0x${Math.random().toString(16).slice(2, 10)}...</span>
+      </div>
+      <div class="timeline-title">${icon} ${l.event} by ${actor}</div>
+      <div class="timeline-desc">${l.detail}</div>
+    `;
+    timeline.appendChild(item);
+  });
+}
+
+// ---------------------------------------------------------------- Core Workflows
+async function handleFileVerification(buffer, fileName, fileSize) {
+  const computedHash = await computeSha256(buffer);
+
+  document.getElementById("verifyFileDetails").classList.remove("hidden");
+  document.getElementById("vFileName").textContent = fileName;
+  document.getElementById("vFileSize").textContent = `${fileSize} bytes`;
+  document.getElementById("vFileHash").textContent = computedHash;
+  document.getElementById("uploadedHashDisplay").textContent = computedHash;
+
+  const ev = state.evidence[currentEvidenceId];
+  const resultBox = document.getElementById("verificationResultBox");
+
+  if (computedHash.toLowerCase() === ev.fileHash.toLowerCase()) {
+    resultBox.className = "result-box verified";
+    resultBox.innerHTML = `
+      <div class="result-icon">✅</div>
+      <div class="result-text">
+        <h4>INTEGRITY VERIFIED &bull; 100% BIT-FOR-BIT MATCH</h4>
+        <p>The cryptographic SHA-256 fingerprint matches the immutable record anchored on-chain.</p>
+      </div>
+    `;
+    toast("Integrity confirmed: File matches on-chain anchor!", "success");
+  } else {
+    resultBox.className = "result-box tampered";
+    resultBox.innerHTML = `
+      <div class="result-icon">🚨</div>
+      <div class="result-text">
+        <h4>TAMPER DETECTED &bull; CRYPTOGRAPHIC HASH MISMATCH</h4>
+        <p>This file does not match the on-chain evidence hash. Evidence has been modified or forged!</p>
+      </div>
+    `;
+    toast("ALERT: File hash does not match blockchain anchor!", "error");
+  }
+}
+
+// ---------------------------------------------------------------- Event Listeners
+document.addEventListener("DOMContentLoaded", () => {
+  // Tabs Navigation
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+
+      btn.classList.add("active");
+      const target = btn.dataset.tab;
+      document.getElementById(`tab-${target}`).classList.add("active");
+    });
+  });
+
+  // Persona Switcher
+  const pSelect = document.getElementById("personaSelect");
+  pSelect.addEventListener("change", (e) => {
+    currentPersonaKey = e.target.value;
+    updatePersonaDisplay();
+    toast(`Active Role switched to: ${PERSONAS[currentPersonaKey].label}`);
+  });
+
+  // Verification Drop Zone
+  const vDrop = document.getElementById("verifyDropZone");
+  const vInput = document.getElementById("verifyFileInput");
+
+  vDrop.addEventListener("click", () => vInput.click());
+  vDrop.addEventListener("dragover", (e) => { e.preventDefault(); vDrop.classList.add("dragover"); });
+  vDrop.addEventListener("dragleave", () => vDrop.classList.remove("dragover"));
+  vDrop.addEventListener("drop", (e) => {
+    e.preventDefault();
+    vDrop.classList.remove("dragover");
+    if (e.dataTransfer.files.length) {
+      const file = e.dataTransfer.files[0];
+      const reader = new FileReader();
+      reader.onload = () => handleFileVerification(reader.result, file.name, file.size);
+      reader.readAsArrayBuffer(file);
+    }
+  });
+  vInput.addEventListener("change", (e) => {
+    if (e.target.files.length) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = () => handleFileVerification(reader.result, file.name, file.size);
+      reader.readAsArrayBuffer(file);
+    }
+  });
+
+  // Quick Samples
+  document.getElementById("quickSampleBtn").addEventListener("click", async () => {
+    const enc = new TextEncoder();
+    const buf = enc.encode(SAMPLE_TEXT);
+    await handleFileVerification(buf, "evidence_report.txt", buf.length);
+  });
+
+  document.getElementById("quickTamperBtn").addEventListener("click", async () => {
+    const enc = new TextEncoder();
+    const buf = enc.encode(SAMPLE_TAMPERED);
+    await handleFileVerification(buf, "evidence_report_TAMPERED.txt", buf.length);
+  });
+
+  // Log Access Button
+  document.getElementById("logAccessBtn").addEventListener("click", () => {
+    const ev = state.evidence[currentEvidenceId];
+    if (!ev.permissions[currentPersonaKey]) {
+      toast(`[REVERT] AccessDenied(): ${PERSONAS[currentPersonaKey].role} has not been granted access!`, "error");
+      return;
+    }
+
+    currentBlock++;
+    const now = new Date().toISOString().replace("T", " ").slice(0, 19);
+    state.auditTrail.push({
+      block: currentBlock,
+      event: "AccessLogged",
+      by: currentPersonaKey,
+      detail: `${PERSONAS[currentPersonaKey].role} verified and logged access to Evidence #${currentEvidenceId}`,
+      time: now
+    });
+
+    renderAuditTrail();
+    updateTopStats();
+    toast(`Access recorded in on-chain audit log (Block #${currentBlock})`, "success");
+  });
+
+  // Custody Transfer
+  document.getElementById("btnTransferCustody").addEventListener("click", () => {
+    const ev = state.evidence[currentEvidenceId];
+    if (ev.custodian !== currentPersonaKey) {
+      toast(`[REVERT] NotCustodian(): Only current custodian (${PERSONAS[ev.custodian].role}) can transfer custody!`, "error");
+      return;
+    }
+
+    const target = document.getElementById("transferTargetSelect").value;
+    if (target === currentPersonaKey) {
+      toast(`[REVERT] InvalidInput(): Cannot transfer custody to yourself!`, "error");
+      return;
+    }
+
+    ev.custodian = target;
+    ev.permissions[target] = true;
+    currentBlock++;
+
+    state.auditTrail.push({
+      block: currentBlock,
+      event: "CustodyTransferred",
+      by: currentPersonaKey,
+      to: target,
+      detail: `Custody transferred from ${PERSONAS[currentPersonaKey].role} to ${PERSONAS[target].role}`,
+      time: new Date().toISOString().replace("T", " ").slice(0, 19)
+    });
+
+    updatePersonaDisplay();
+    toast(`Custody successfully transferred to ${PERSONAS[target].role}!`, "success");
+  });
+
+  // Grant Access
+  document.getElementById("btnGrantAccess").addEventListener("click", () => {
+    const ev = state.evidence[currentEvidenceId];
+    if (ev.custodian !== currentPersonaKey) {
+      toast(`[REVERT] NotCustodian(): Only current custodian (${PERSONAS[ev.custodian].role}) can grant access!`, "error");
+      return;
+    }
+
+    const target = document.getElementById("accessTargetSelect").value;
+    ev.permissions[target] = true;
+    currentBlock++;
+
+    state.auditTrail.push({
+      block: currentBlock,
+      event: "AccessGranted",
+      by: currentPersonaKey,
+      to: target,
+      detail: `${PERSONAS[currentPersonaKey].role} granted access to ${PERSONAS[target].role} (AES key re-encrypted)`,
+      time: new Date().toISOString().replace("T", " ").slice(0, 19)
+    });
+
+    updatePersonaDisplay();
+    toast(`Access granted to ${PERSONAS[target].role}!`, "success");
+  });
+
+  // Revoke Access
+  document.getElementById("btnRevokeAccess").addEventListener("click", () => {
+    const ev = state.evidence[currentEvidenceId];
+    if (ev.custodian !== currentPersonaKey) {
+      toast(`[REVERT] NotCustodian(): Only current custodian (${PERSONAS[ev.custodian].role}) can revoke access!`, "error");
+      return;
+    }
+
+    const target = document.getElementById("accessTargetSelect").value;
+    if (target === ev.custodian) {
+      toast(`[REVERT] CannotRevokeCustodian(): Cannot revoke access of current custodian!`, "error");
+      return;
+    }
+
+    if (!ev.permissions[target]) {
+      toast(`[REVERT] NothingToRevoke(): ${PERSONAS[target].role} does not currently have access!`, "error");
+      return;
+    }
+
+    ev.permissions[target] = false;
+    currentBlock++;
+
+    state.auditTrail.push({
+      block: currentBlock,
+      event: "AccessRevoked",
+      by: currentPersonaKey,
+      to: target,
+      detail: `${PERSONAS[currentPersonaKey].role} revoked access of ${PERSONAS[target].role} (key wiped)`,
+      time: new Date().toISOString().replace("T", " ").slice(0, 19)
+    });
+
+    updatePersonaDisplay();
+    toast(`Access revoked for ${PERSONAS[target].role}. Wrapped key wiped from state.`, "warning");
+  });
+
+  // Register Tab Drag & Drop
+  const rDrop = document.getElementById("registerDropZone");
+  const rInput = document.getElementById("registerFileInput");
+  const btnReg = document.getElementById("btnRegisterOnChain");
+
+  rDrop.addEventListener("click", () => rInput.click());
+  rDrop.addEventListener("dragover", (e) => { e.preventDefault(); rDrop.classList.add("dragover"); });
+  rDrop.addEventListener("dragleave", () => rDrop.classList.remove("dragover"));
+  rDrop.addEventListener("drop", (e) => {
+    e.preventDefault();
+    rDrop.classList.remove("dragover");
+    if (e.dataTransfer.files.length) handleRegFile(e.dataTransfer.files[0]);
+  });
+  rInput.addEventListener("change", (e) => {
+    if (e.target.files.length) handleRegFile(e.target.files[0]);
+  });
+
+  let pendingRegData = null;
+
+  async function handleRegFile(file) {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const hash = await computeSha256(reader.result);
+      const simulatedCid = "sim-" + hash.slice(2, 26) + "...";
+
+      document.getElementById("regDetails").classList.remove("hidden");
+      document.getElementById("rFileName").textContent = file.name;
+      document.getElementById("rFileSize").textContent = `${file.size} bytes`;
+      document.getElementById("rFileHash").textContent = hash;
+      document.getElementById("rFileCid").textContent = simulatedCid;
+
+      pendingRegData = { name: file.name, hash, cid: simulatedCid, size: file.size };
+      btnReg.disabled = false;
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  btnReg.addEventListener("click", () => {
+    if (currentPersonaKey !== "investigator") {
+      toast(`[REVERT] NotAuthorized(): Only Investigator can register new evidence! Current role: ${PERSONAS[currentPersonaKey].role}`, "error");
+      return;
+    }
+    if (!pendingRegData) return;
+
+    const newId = Object.keys(state.evidence).length + 1;
+    currentBlock++;
+
+    state.evidence[newId] = {
+      id: newId,
+      title: document.getElementById("caseTitle").value || pendingRegData.name,
+      fileHash: pendingRegData.hash,
+      cid: pendingRegData.cid,
+      custodian: "investigator",
+      registeredBy: "investigator",
+      createdAtBlock: currentBlock,
+      permissions: {
+        investigator: true,
+        lab: false,
+        court: false,
+        defense: false
+      }
+    };
+
+    state.auditTrail.push({
+      block: currentBlock,
+      event: "EvidenceRegistered",
+      by: "investigator",
+      detail: `Evidence #${newId} registered (hash ${pendingRegData.hash.slice(0, 12)}...)`,
+      time: new Date().toISOString().replace("T", " ").slice(0, 19)
+    });
+
+    // Add to verify select
+    const sel = document.getElementById("verifyEvidenceSelect");
+    const opt = document.createElement("option");
+    opt.value = newId;
+    opt.textContent = `Evidence #${newId} (${pendingRegData.name})`;
+    sel.appendChild(opt);
+
+    updateTopStats();
+    renderAuditTrail();
+    toast(`Evidence #${newId} successfully encrypted and anchored on-chain!`, "success");
+    btnReg.disabled = true;
+  });
+
+  // Tamper Sandbox simulation handlers
+  document.getElementById("btnSim6a").addEventListener("click", () => {
+    const el = document.getElementById("res6a");
+    el.style.color = "var(--danger)";
+    el.textContent = "🚨 REJECTED: CID mismatch detected! The stored content has been altered in disk/IPFS.";
+    toast("Layer 1 defense: IPFS content addressing caught storage tamper!", "error");
+  });
+
+  document.getElementById("btnSim6b").addEventListener("click", () => {
+    const el = document.getElementById("res6b");
+    el.style.color = "var(--danger)";
+    el.textContent = "🚨 REJECTED: AES-256-GCM authentication tag verification failed. Ciphertext was altered!";
+    toast("Layer 2 defense: GCM authentication tag caught ciphertext tamper!", "error");
+  });
+
+  document.getElementById("btnSim6c").addEventListener("click", () => {
+    const el = document.getElementById("res6c");
+    el.style.color = "var(--danger)";
+    el.textContent = "🚨 REJECTED: Decrypted file SHA-256 does NOT match on-chain hash! Rogue substitution caught.";
+    toast("Layer 3 defense: Blockchain on-chain hash caught insider forgery!", "error");
+  });
+
+  // Wallet Connection
+  document.getElementById("connectWalletBtn").addEventListener("click", async () => {
+    if (typeof window.ethereum !== "undefined") {
+      try {
+        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const network = await provider.getNetwork();
+        document.getElementById("modeText").textContent = `Web3 (${network.name || 'chainId: ' + network.chainId})`;
+        document.getElementById("activeAddressDisplay").textContent = short(accounts[0]);
+        toast(`Connected to MetaMask: ${short(accounts[0])}`, "success");
+      } catch (err) {
+        toast("MetaMask connection rejected.", "error");
+      }
+    } else {
+      toast("MetaMask not detected. Running in Demo Simulator mode.", "info");
+    }
+  });
+
+  // Initialize display
+  updatePersonaDisplay();
+});
