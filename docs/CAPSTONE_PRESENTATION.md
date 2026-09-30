@@ -2,7 +2,7 @@
 **Milestone**: Release v1.0.0 (Production / Capstone Final Delivery)  
 **Project**: Decentralized Digital Evidence Chain-of-Custody & Forensic Integrity System  
 **Author**: Ayush Singh (`ayus1n9`)  
-**Repository**: [https://github.com/ayus1n9/chaincustody](https://github.com/ayus1n9/chaincustody)
+**Repository**: [https://github.com/ayus1n9/ChainCustody](https://github.com/ayus1n9/ChainCustody)
 
 ---
 
