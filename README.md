@@ -19,8 +19,9 @@ chaincustody/
 │   └── ChainCustody.sol        Solidity contract: parties, evidence, access, custody, audit
 ├── client/
 │   ├── crypto.js                SHA-256 hash, AES-256-GCM encrypt/decrypt, RSA key wrap/unwrap
+│   ├── merkle.js                Cryptographic Merkle Tree for bulk evidence dossiers & proofs
 │   ├── storage.js               Off-chain storage: local content-addressed sim, or real IPFS
-│   └── selftest.js              Dependency-free test of the crypto+storage layer
+│   └── selftest.js              Dependency-free test of the crypto+storage+merkle layer
 ├── scripts/
 │   ├── demo.js                  Full end-to-end walkthrough (deploy → register → grant →
 │   │                             access → tamper attempts → revoke → custody transfer → audit)

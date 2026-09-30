@@ -168,4 +168,26 @@ contract ChainCustody {
     function verifyIntegrity(uint256 id, bytes32 candidateHash) external view exists(id) returns (bool) {
         return _evidence[id].fileHash == candidateHash;
     }
+
+    /// @notice Verifies whether a specific file hash is part of a bulk evidence dossier using a Merkle proof.
+    /// @param id        Evidence identifier (where fileHash is the Merkle Root of the dossier)
+    /// @param fileHash  SHA-256 hash of the specific leaf file
+    /// @param proof     Array of sibling hashes forming the Merkle branch proof
+    function verifyBatchInclusion(uint256 id, bytes32 fileHash, bytes32[] calldata proof)
+        external
+        view
+        exists(id)
+        returns (bool)
+    {
+        bytes32 computedHash = fileHash;
+        for (uint256 i = 0; i < proof.length; i++) {
+            bytes32 proofElement = proof[i];
+            if (computedHash <= proofElement) {
+                computedHash = sha256(abi.encodePacked(computedHash, proofElement));
+            } else {
+                computedHash = sha256(abi.encodePacked(proofElement, computedHash));
+            }
+        }
+        return computedHash == _evidence[id].fileHash;
+    }
 }

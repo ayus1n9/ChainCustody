@@ -6,6 +6,7 @@ const path = require("path");
 const fs = require("fs");
 const cc = require("./crypto");
 const { LocalContentStore } = require("./storage");
+const { MerkleTree } = require("./merkle");
 
 (async () => {
   const store = new LocalContentStore(fs.mkdtempSync(path.join(os.tmpdir(), "cc-")));
@@ -49,6 +50,23 @@ const { LocalContentStore } = require("./storage");
   const wrappedUint8 = new Uint8Array(wrapped);
   assert.ok(cc.unwrapKey(wrappedUint8, lab.privateKey).equals(key), "unwrapKey accepts Uint8Array");
   console.log("PASS  buffer guard and unwrapKey input normalization verified");
+
+  // 8. Merkle Tree generation, root stability, and inclusion proof
+  const files = [
+    Buffer.from("file_001_cctv.mp4"),
+    Buffer.from("file_002_chat_log.db"),
+    Buffer.from("file_003_disk_dump.raw"),
+    Buffer.from("file_004_photo.jpg")
+  ];
+  const tree = new MerkleTree(files);
+  const root = tree.getRoot();
+  assert.strictEqual(root.length, 66, "Merkle root must be a 0x + 64 hex chars bytes32");
+  for (let i = 0; i < files.length; i++) {
+    const proof = tree.getProof(i);
+    assert.ok(MerkleTree.verify(proof, files[i], root), `proof for file ${i} must verify`);
+    assert.ok(!MerkleTree.verify(proof, Buffer.from("forged_file"), root), "tampered file must fail proof");
+  }
+  console.log("PASS  Merkle tree dossier: root calculation and inclusion proofs verified");
 
   console.log("\nAll client-layer self-tests passed.");
 })().catch((e) => { console.error("FAIL", e); process.exit(1); });

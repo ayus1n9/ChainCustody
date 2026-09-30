@@ -2,6 +2,7 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { loadFixture } = require("@nomicfoundation/hardhat-toolbox/network-helpers");
 const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
+const { MerkleTree } = require("../client/merkle");
 
 const ROLE = { None: 0, Investigator: 1, Lab: 2, Court: 3, Defense: 4 };
 const HASH = ethers.id("evidence-file-1"); // any bytes32
@@ -188,6 +189,47 @@ describe("ChainCustody", () => {
       await expect(c.connect(investigator).transferCustody(1, outsider.address, KEY)).to.be.revertedWithCustomError(c, "PartyNotRegistered");
       await expect(c.connect(investigator).transferCustody(1, investigator.address, KEY)).to.be.revertedWithCustomError(c, "InvalidInput");
       await expect(c.connect(investigator).transferCustody(1, court.address, "0x")).to.be.revertedWithCustomError(c, "InvalidInput");
+    });
+  });
+
+  describe("merkle batch inclusion", () => {
+    it("verifies inclusion of individual files in a bulk evidence dossier", async () => {
+      const { c, investigator } = await loadFixture(deployFixture);
+      const files = [
+        Buffer.from("file_001_cctv.mp4"),
+        Buffer.from("file_002_chat_log.db"),
+        Buffer.from("file_003_disk_dump.raw"),
+        Buffer.from("file_004_photo.jpg"),
+      ];
+      const tree = new MerkleTree(files);
+      const root = tree.getRoot();
+
+      await c.connect(investigator).registerEvidence(root, "cid-dossier", KEY);
+
+      for (let i = 0; i < files.length; i++) {
+        const proof = tree.getProof(i);
+        const leafHash = tree.getLeaf(i);
+        expect(await c.verifyBatchInclusion(1, leafHash, proof)).to.equal(true);
+      }
+    });
+
+    it("rejects altered files or invalid proofs for batch dossiers", async () => {
+      const { c, investigator } = await loadFixture(deployFixture);
+      const files = [Buffer.from("file_A"), Buffer.from("file_B"), Buffer.from("file_C")];
+      const tree = new MerkleTree(files);
+      const root = tree.getRoot();
+
+      await c.connect(investigator).registerEvidence(root, "cid-dossier", KEY);
+
+      const validProof0 = tree.getProof(0);
+      const fakeHash = ethers.id("fake_file");
+      expect(await c.verifyBatchInclusion(1, fakeHash, validProof0)).to.equal(false);
+      expect(await c.verifyBatchInclusion(1, tree.getLeaf(0), [ethers.ZeroHash])).to.equal(false);
+    });
+
+    it("reverts batch verification on non-existent evidence", async () => {
+      const { c } = await loadFixture(deployFixture);
+      await expect(c.verifyBatchInclusion(999, ethers.ZeroHash, [])).to.be.revertedWithCustomError(c, "EvidenceNotFound");
     });
   });
 });
