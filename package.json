@@ -12,7 +12,9 @@
     "node": "hardhat node",
     "deploy:local": "hardhat run scripts/deploy.js --network localhost",
     "deploy:amoy": "hardhat run scripts/deploy.js --network amoy",
-    "ui": "node scripts/server.js"
+    "ui": "node scripts/server.js",
+    "verify": "hardhat run scripts/verify.js",
+    "certify": "hardhat run scripts/certify.js"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",

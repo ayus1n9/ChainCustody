@@ -27,7 +27,9 @@ chaincustody/
 │   │                             access → tamper attempts → revoke → custody transfer → audit)
 │   ├── deploy.js                Deploy to a network, save the address
 │   ├── benchmark.js             Gas cost per operation + L2 vs L1 economic analysis
-│   └── server.js                Zero-dependency local server for the web dashboard
+│   ├── server.js                Zero-dependency local server for the web dashboard
+│   ├── verify.js                Standalone forensic terminal verification CLI
+│   └── certify.js               Court-admissible certificate generator (FRE 902 / Sec 65B)
 ├── frontend/
 │   ├── index.html               Web dashboard (role switcher, verify, custody, timeline)
 │   ├── style.css                Modern dark forensic theme
@@ -91,6 +93,14 @@ npm run benchmark
 # 6. Interactive Web Dashboard — visual role switching, drag-and-drop verification & timeline
 npm run ui
 # (Opens http://localhost:3000)
+
+# 7. Forensic Terminal Verification — instant command-line verification
+npm run verify
+# Or test specific file: FILE=sample/evidence_report.txt npm run verify
+
+# 8. Generate Court-Admissible Certificate — formal proof for legal proceedings
+npm run certify
+# (Writes results/CERTIFICATE_EVIDENCE_1.md)
 ```
 
 `npm run demo` is the one to show your faculty live: it deploys the contract,
