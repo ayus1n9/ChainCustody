@@ -1,0 +1,128 @@
+{
+  "env": {
+    "python": "3.14.4",
+    "os": "Linux-7.0.0-34-generic-x86_64-with-glibc2.43",
+    "cpu": "11th Gen Intel(R) Core(TM) i3-1125G4 @ 2.00GHz",
+    "cores": 8,
+    "ram_gb": 7.1,
+    "cryptography": "46.0.5"
+  },
+  "scenarios": {
+    "central": {
+      "S1 Evidence file altered": 1.0,
+      "S2 Admin alters file + stored hash": 0.0,
+      "S3 Admin deletes audit record": 0.0
+    },
+    "ledger": {
+      "S1 Evidence file altered": 1.0,
+      "S2 Admin alters file + ledger entry": 1.0,
+      "S3 Admin deletes audit record": 1.0,
+      "S4 Admin rewrites entire chain (single node)": 0.0,
+      "S5 Full rewrite, head hash anchored by 2nd party": 1.0
+    }
+  },
+  "perf": {
+    "1 KB": {
+      "bytes": 1024,
+      "sha256_ms": {
+        "mean": 0.0021390399797382997,
+        "std": 0.0007289718244800339
+      },
+      "aes_enc_ms": {
+        "mean": 0.0021576799827016657,
+        "std": 0.0036089874878070145
+      },
+      "aes_dec_ms": {
+        "mean": 0.0015921200247248635,
+        "std": 0.0011624599885572044
+      }
+    },
+    "100 KB": {
+      "bytes": 102400,
+      "sha256_ms": {
+        "mean": 0.09212175998982275,
+        "std": 0.007647536165722445
+      },
+      "aes_enc_ms": {
+        "mean": 0.01755983998918964,
+        "std": 0.005986814335946058
+      },
+      "aes_dec_ms": {
+        "mean": 0.015211800027827849,
+        "std": 0.0014412378133547195
+      }
+    },
+    "1 MB": {
+      "bytes": 1048576,
+      "sha256_ms": {
+        "mean": 0.8906722800111311,
+        "std": 0.04493915258872305
+      },
+      "aes_enc_ms": {
+        "mean": 0.18446312002197374,
+        "std": 0.012712829148654937
+      },
+      "aes_dec_ms": {
+        "mean": 0.16032639995501086,
+        "std": 0.008997657918079037
+      }
+    },
+    "10 MB": {
+      "bytes": 10485760,
+      "sha256_ms": {
+        "mean": 10.393187839999882,
+        "std": 0.9628725664634347
+      },
+      "aes_enc_ms": {
+        "mean": 5.921626919998744,
+        "std": 1.944775640099365
+      },
+      "aes_dec_ms": {
+        "mean": 5.193700999980138,
+        "std": 2.503326162147833
+      }
+    },
+    "50 MB": {
+      "bytes": 52428800,
+      "sha256_ms": {
+        "mean": 50.480017280005995,
+        "std": 4.9317612865201035
+      },
+      "aes_enc_ms": {
+        "mean": 40.31375403999846,
+        "std": 3.875314301353968
+      },
+      "aes_dec_ms": {
+        "mean": 40.563945319991035,
+        "std": 4.025235345844232
+      }
+    }
+  },
+  "chain": {
+    "100": {
+      "verify_ms": 0.16467199998260185,
+      "verify_std": 0.004080668438868757,
+      "append_us": 3.6713400004373398
+    },
+    "1000": {
+      "verify_ms": 1.7440333999275026,
+      "verify_std": 0.08339089452132564,
+      "append_us": 3.225435999866022
+    },
+    "10000": {
+      "verify_ms": 15.406852999967668,
+      "verify_std": 1.1842031908092174,
+      "append_us": 4.380379100007303
+    },
+    "100000": {
+      "verify_ms": 158.4129183999721,
+      "verify_std": 7.434799053049914,
+      "append_us": 3.300809360000585
+    }
+  },
+  "config": {
+    "files_per_bucket": 5,
+    "trials": 5,
+    "scenario_runs": 1000
+  }
+}

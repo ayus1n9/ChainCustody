@@ -1,0 +1,59 @@
+{
+  "summary": {
+    "deployment": 1175994,
+    "registerEvidence": {
+      "n": 200,
+      "mean": 395133,
+      "min": 395025,
+      "max": 412149
+    },
+    "grantAccess": {
+      "n": 30,
+      "mean": 257847,
+      "min": 257847,
+      "max": 257847
+    },
+    "logAccess": {
+      "n": 30,
+      "mean": 27728,
+      "min": 27728,
+      "max": 27728
+    },
+    "revokeAccess": {
+      "n": 30,
+      "mean": 64047,
+      "min": 64047,
+      "max": 64047
+    },
+    "transferCustody": {
+      "n": 30,
+      "mean": 260979,
+      "min": 260979,
+      "max": 260979
+    }
+  },
+  "scaling": [
+    {
+      "registrySizeBefore": 0,
+      "registerGas": 412149
+    },
+    {
+      "registrySizeBefore": 49,
+      "registerGas": 395049
+    },
+    {
+      "registrySizeBefore": 99,
+      "registerGas": 395049
+    },
+    {
+      "registrySizeBefore": 199,
+      "registerGas": 395049
+    }
+  ],
+  "assumptions": {
+    "gasPriceGwei": null,
+    "tokenPriceUsd": null
+  },
+  "costUsd": {},
+  "note": "Local Hardhat chain; gas exact, latency not representative."
+}

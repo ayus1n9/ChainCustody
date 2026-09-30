@@ -1,0 +1,7 @@
+FORENSIC ACQUISITION REPORT (SAMPLE / FICTIONAL)
+Case number : FIR-2026-0042
+Item        : Laptop hard drive, serial SN-778-AX
+Acquired by : Investigating officer (Investigator role)
+Method      : Write-blocked bit-for-bit image
+Notes       : This is a fictional file used only to demonstrate ChainCustody.
+              Any change to even one byte of this file changes its SHA-256 hash.
