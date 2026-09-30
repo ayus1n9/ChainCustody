@@ -30,6 +30,8 @@ contract ChainCustody {
     mapping(uint256 => mapping(address => bytes)) private _wrappedKey; // AES key, encrypted per recipient
     mapping(uint256 => address) public proposedCustodianOf;            // pending 2-step custody transfer
     mapping(uint256 => bytes) private _pendingWrappedKey;
+    mapping(uint256 => bool) public isSealed;                          // judicial seal flag
+    mapping(uint256 => string) public sealReason;                      // court docket or order reason
 
     // ----------------------------------------------------------------- errors
     error NotAdmin();
@@ -44,6 +46,8 @@ contract ChainCustody {
     error CannotRevokeCustodian();
     error NoTransferPending();
     error NotProposedCustodian();
+    error EvidenceIsSealed();
+    error EvidenceNotSealed();
 
     // ----------------------------------------------------------------- events
     // Events form the immutable audit trail of the chain of custody.
@@ -55,6 +59,8 @@ contract ChainCustody {
     event CustodyTransferred(uint256 indexed id, address indexed from, address indexed to, uint256 timestamp);
     event CustodyTransferProposed(uint256 indexed id, address indexed from, address indexed to, uint256 timestamp);
     event CustodyTransferCancelled(uint256 indexed id, address indexed by, address indexed to, uint256 timestamp);
+    event EvidenceSealed(uint256 indexed id, address indexed by, string reason, uint256 timestamp);
+    event EvidenceUnsealed(uint256 indexed id, address indexed by, string reason, uint256 timestamp);
 
     // -------------------------------------------------------------- modifiers
     modifier onlyAdmin() {
@@ -117,6 +123,7 @@ contract ChainCustody {
 
     /// @notice Custodian grants a registered party access (and supplies the AES key wrapped for them).
     function grantAccess(uint256 id, address to, bytes calldata wrappedKey) external onlyCustodian(id) {
+        if (isSealed[id]) revert EvidenceIsSealed();
         if (roleOf[to] == Role.None) revert PartyNotRegistered();
         if (wrappedKey.length == 0) revert InvalidInput();
         hasAccess[id][to] = true;
@@ -126,6 +133,7 @@ contract ChainCustody {
 
     /// @notice Custodian revokes a party's access. History stays in the audit log.
     function revokeAccess(uint256 id, address from) external onlyCustodian(id) {
+        if (isSealed[id]) revert EvidenceIsSealed();
         if (from == _evidence[id].custodian) revert CannotRevokeCustodian();
         if (!hasAccess[id][from]) revert NothingToRevoke();
         hasAccess[id][from] = false;
@@ -138,6 +146,7 @@ contract ChainCustody {
         external
         onlyCustodian(id)
     {
+        if (isSealed[id]) revert EvidenceIsSealed();
         if (roleOf[newCustodian] == Role.None) revert PartyNotRegistered();
         if (newCustodian == msg.sender || wrappedKey.length == 0) revert InvalidInput();
 
@@ -153,6 +162,7 @@ contract ChainCustody {
         external
         onlyCustodian(id)
     {
+        if (isSealed[id]) revert EvidenceIsSealed();
         if (roleOf[to] == Role.None) revert PartyNotRegistered();
         if (to == msg.sender || wrappedKey.length == 0) revert InvalidInput();
 
@@ -175,6 +185,7 @@ contract ChainCustody {
 
     /// @notice Proposed party accepts custody handover (Step 2 of 2-step handover).
     function acceptCustody(uint256 id) external exists(id) {
+        if (isSealed[id]) revert EvidenceIsSealed();
         if (proposedCustodianOf[id] != msg.sender) revert NotProposedCustodian();
 
         address prevCustodian = _evidence[id].custodian;
@@ -193,6 +204,35 @@ contract ChainCustody {
     function logAccess(uint256 id) external exists(id) {
         if (!hasAccess[id][msg.sender]) revert AccessDenied();
         emit AccessLogged(id, msg.sender, block.timestamp);
+    }
+
+    // ------------------------------------------------------------ judicial sealing
+    /// @notice Court seals evidence by judicial order, freezing all custody transfers and key grants.
+    /// @param id      Evidence identifier
+    /// @param reason  Legal rationale / court docket reference for the seal
+    function sealEvidence(uint256 id, string calldata reason) external exists(id) {
+        if (roleOf[msg.sender] != Role.Court) revert NotAuthorized();
+        if (isSealed[id]) revert EvidenceIsSealed();
+        if (bytes(reason).length == 0) revert InvalidInput();
+
+        isSealed[id] = true;
+        sealReason[id] = reason;
+
+        emit EvidenceSealed(id, msg.sender, reason, block.timestamp);
+    }
+
+    /// @notice Court unseals evidence following judicial ruling.
+    /// @param id      Evidence identifier
+    /// @param reason  Judicial unsealing justification / motion ruling reference
+    function unsealEvidence(uint256 id, string calldata reason) external exists(id) {
+        if (roleOf[msg.sender] != Role.Court) revert NotAuthorized();
+        if (!isSealed[id]) revert EvidenceNotSealed();
+        if (bytes(reason).length == 0) revert InvalidInput();
+
+        isSealed[id] = false;
+        sealReason[id] = reason;
+
+        emit EvidenceUnsealed(id, msg.sender, reason, block.timestamp);
     }
 
     // ------------------------------------------------------------------ views

@@ -72,6 +72,11 @@
         <span class="stat-val" id="auditLogCountDisplay">6 Events</span>
         <span class="stat-sub">Immutable on-chain history</span>
       </div>
+      <div class="stat-card">
+        <span class="stat-label">Legal Status</span>
+        <span class="stat-val" id="legalStatusDisplay" style="color: var(--success);">ACTIVE</span>
+        <span class="stat-sub" id="legalStatusSub">Normal Chain of Custody</span>
+      </div>
     </section>
 
     <!-- Navigation Tabs -->
@@ -237,6 +242,28 @@
             <ul id="accessStatusList" class="permission-list">
               <!-- Populated dynamically -->
             </ul>
+          </div>
+        </div>
+
+        <!-- Judicial Sealing Card -->
+        <div class="card" style="grid-column: 1 / -1; margin-top: 1rem; border-left: 4px solid var(--warning);">
+          <div class="card-badge" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b;">Court Order Only</div>
+          <h3>⚖️ Judicial Sealing & Impoundment Protocol</h3>
+          <p class="card-desc">Pursuant to FRE 902 / procedural rules, the presiding Court Magistrate can freeze all custody handovers and access permissions.</p>
+
+          <div id="sealStatusBanner" class="seal-banner unsealed">
+            <span id="sealStatusIcon">🟢</span>
+            <span id="sealStatusText">Status: Unsealed (Active Chain of Custody)</span>
+          </div>
+
+          <div class="form-group" style="margin-top: 1.25rem;">
+            <label for="sealReasonInput">Judicial Docket / Court Order Reason:</label>
+            <input type="text" id="sealReasonInput" class="input-field" placeholder="e.g. Order 2026-CR-8921: Exhibit sealed pending trial verdict" value="Order 2026-CR-8921: Impounded by Judicial Order">
+          </div>
+
+          <div class="btn-group">
+            <button id="btnSealEvidence" class="btn btn-warning">⚖️ Seal Evidence by Court Order</button>
+            <button id="btnUnsealEvidence" class="btn btn-outline" disabled>🔓 Unseal Evidence</button>
           </div>
         </div>
       </div>

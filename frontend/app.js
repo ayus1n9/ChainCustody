@@ -68,6 +68,8 @@ const state = {
       custodian: "investigator",
       registeredBy: "investigator",
       createdAtBlock: 6,
+      isSealed: false,
+      sealReason: "",
       permissions: {
         investigator: true,
         lab: true,
@@ -128,10 +130,36 @@ function updatePersonaDisplay() {
   document.getElementById("activeRoleDisplay").textContent = p.role;
   document.getElementById("activeAddressDisplay").textContent = short(p.address);
 
-  // Update permissions display
+  // Update permissions display & seal banner
   renderAccessMatrix();
   renderAuditTrail();
   updateTopStats();
+  updateSealControls();
+}
+
+function updateSealControls() {
+  const ev = state.evidence[currentEvidenceId];
+  if (!ev) return;
+
+  const banner = document.getElementById("sealStatusBanner");
+  const icon = document.getElementById("sealStatusIcon");
+  const text = document.getElementById("sealStatusText");
+  const btnSeal = document.getElementById("btnSealEvidence");
+  const btnUnseal = document.getElementById("btnUnsealEvidence");
+
+  if (ev.isSealed) {
+    banner.className = "seal-banner sealed";
+    icon.textContent = "🔒";
+    text.textContent = `Status: JUDICIALLY SEALED — ${ev.sealReason || "Court Order"}`;
+    btnSeal.disabled = true;
+    btnUnseal.disabled = false;
+  } else {
+    banner.className = "seal-banner unsealed";
+    icon.textContent = "🟢";
+    text.textContent = "Status: Unsealed (Active Chain of Custody)";
+    btnSeal.disabled = false;
+    btnUnseal.disabled = true;
+  }
 }
 
 function updateTopStats() {
@@ -143,6 +171,20 @@ function updateTopStats() {
   document.getElementById("evidenceCountDisplay").textContent = Object.keys(state.evidence).length + " Item(s)";
   document.getElementById("auditLogCountDisplay").textContent = state.auditTrail.length + " Events";
   document.getElementById("onChainHashDisplay").textContent = ev.fileHash;
+
+  const legalStatus = document.getElementById("legalStatusDisplay");
+  const legalSub = document.getElementById("legalStatusSub");
+  if (legalStatus && legalSub) {
+    if (ev.isSealed) {
+      legalStatus.textContent = "SEALED";
+      legalStatus.style.color = "var(--warning)";
+      legalSub.textContent = "Court Frozen";
+    } else {
+      legalStatus.textContent = "ACTIVE";
+      legalStatus.style.color = "var(--success)";
+      legalSub.textContent = "Normal Chain of Custody";
+    }
+  }
 }
 
 function renderAccessMatrix() {
@@ -174,7 +216,9 @@ function renderAuditTrail() {
     AccessGranted: "🔑",
     AccessLogged: "👁️",
     CustodyTransferred: "🔄",
-    AccessRevoked: "🚫"
+    AccessRevoked: "🚫",
+    EvidenceSealed: "⚖️",
+    EvidenceUnsealed: "🔓"
   };
 
   [...state.auditTrail].reverse().forEach((l, idx) => {
@@ -320,6 +364,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // Custody Transfer
   document.getElementById("btnTransferCustody").addEventListener("click", () => {
     const ev = state.evidence[currentEvidenceId];
+    if (ev.isSealed) {
+      toast(`[REVERT] EvidenceIsSealed(): Evidence #${currentEvidenceId} is judicially sealed by court order! Custody transfers are frozen.`, "error");
+      return;
+    }
     if (ev.custodian !== currentPersonaKey) {
       toast(`[REVERT] NotCustodian(): Only current custodian (${PERSONAS[ev.custodian].role}) can transfer custody!`, "error");
       return;
@@ -351,6 +399,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // Grant Access
   document.getElementById("btnGrantAccess").addEventListener("click", () => {
     const ev = state.evidence[currentEvidenceId];
+    if (ev.isSealed) {
+      toast(`[REVERT] EvidenceIsSealed(): Evidence #${currentEvidenceId} is judicially sealed! Access grants are frozen.`, "error");
+      return;
+    }
     if (ev.custodian !== currentPersonaKey) {
       toast(`[REVERT] NotCustodian(): Only current custodian (${PERSONAS[ev.custodian].role}) can grant access!`, "error");
       return;
@@ -376,6 +428,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // Revoke Access
   document.getElementById("btnRevokeAccess").addEventListener("click", () => {
     const ev = state.evidence[currentEvidenceId];
+    if (ev.isSealed) {
+      toast(`[REVERT] EvidenceIsSealed(): Evidence #${currentEvidenceId} is judicially sealed! Access modifications are frozen.`, "error");
+      return;
+    }
     if (ev.custodian !== currentPersonaKey) {
       toast(`[REVERT] NotCustodian(): Only current custodian (${PERSONAS[ev.custodian].role}) can revoke access!`, "error");
       return;
@@ -406,6 +462,67 @@ document.addEventListener("DOMContentLoaded", () => {
 
     updatePersonaDisplay();
     toast(`Access revoked for ${PERSONAS[target].role}. Wrapped key wiped from state.`, "warning");
+  });
+
+  // Judicial Sealing Handlers
+  document.getElementById("btnSealEvidence").addEventListener("click", () => {
+    const ev = state.evidence[currentEvidenceId];
+    if (currentPersonaKey !== "court") {
+      toast(`[REVERT] NotAuthorized(): Only Court (Judge) can issue sealing orders! Active role: ${PERSONAS[currentPersonaKey].role}`, "error");
+      return;
+    }
+    if (ev.isSealed) {
+      toast(`[REVERT] EvidenceIsSealed(): Evidence #${currentEvidenceId} is already sealed!`, "error");
+      return;
+    }
+    const reason = document.getElementById("sealReasonInput").value.trim();
+    if (!reason) {
+      toast(`[REVERT] InvalidInput(): Court order docket or rationale is required!`, "error");
+      return;
+    }
+
+    ev.isSealed = true;
+    ev.sealReason = reason;
+    currentBlock++;
+
+    state.auditTrail.push({
+      block: currentBlock,
+      event: "EvidenceSealed",
+      by: currentPersonaKey,
+      detail: `Court sealed Evidence #${currentEvidenceId}: "${reason}"`,
+      time: new Date().toISOString().replace("T", " ").slice(0, 19)
+    });
+
+    updatePersonaDisplay();
+    toast(`⚖️ Evidence #${currentEvidenceId} judicially sealed. Custody & access frozen.`, "warning");
+  });
+
+  document.getElementById("btnUnsealEvidence").addEventListener("click", () => {
+    const ev = state.evidence[currentEvidenceId];
+    if (currentPersonaKey !== "court") {
+      toast(`[REVERT] NotAuthorized(): Only Court (Judge) can unseal evidence! Active role: ${PERSONAS[currentPersonaKey].role}`, "error");
+      return;
+    }
+    if (!ev.isSealed) {
+      toast(`[REVERT] EvidenceNotSealed(): Evidence #${currentEvidenceId} is not sealed!`, "error");
+      return;
+    }
+    const reason = document.getElementById("sealReasonInput").value.trim() || "Released by Court Order";
+
+    ev.isSealed = false;
+    ev.sealReason = reason;
+    currentBlock++;
+
+    state.auditTrail.push({
+      block: currentBlock,
+      event: "EvidenceUnsealed",
+      by: currentPersonaKey,
+      detail: `Court unsealed Evidence #${currentEvidenceId}: "${reason}"`,
+      time: new Date().toISOString().replace("T", " ").slice(0, 19)
+    });
+
+    updatePersonaDisplay();
+    toast(`🔓 Evidence #${currentEvidenceId} unsealed and returned to active custody.`, "success");
   });
 
   // Register Tab Drag & Drop

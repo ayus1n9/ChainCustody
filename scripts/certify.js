@@ -46,9 +46,19 @@ async function main() {
 
   const [anchoredHash, cid, custodian, createdAt] = await contract.getEvidence(evidenceId);
   const contractAddress = await contract.getAddress();
+  const isSealed = await contract.isSealed(evidenceId);
+  const sealReason = isSealed ? await contract.sealReason(evidenceId) : "None (Unsealed / Active Custody)";
 
   // Query events for this evidence ID
-  const eventNames = ["EvidenceRegistered", "AccessGranted", "AccessRevoked", "AccessLogged", "CustodyTransferred"];
+  const eventNames = [
+    "EvidenceRegistered",
+    "AccessGranted",
+    "AccessRevoked",
+    "AccessLogged",
+    "CustodyTransferred",
+    "EvidenceSealed",
+    "EvidenceUnsealed"
+  ];
   let logs = [];
   for (const name of eventNames) {
     logs.push(...(await contract.queryFilter(contract.filters[name](evidenceId))));
@@ -77,6 +87,12 @@ async function main() {
     } else if (l.eventName === "CustodyTransferred") {
       actor = a[1];
       details = `Custody handed over to: ${a[2]}`;
+    } else if (l.eventName === "EvidenceSealed") {
+      actor = a[1];
+      details = `Judicial Seal Order: "${a[2]}"`;
+    } else if (l.eventName === "EvidenceUnsealed") {
+      actor = a[1];
+      details = `Judicial Unseal Order: "${a[2]}"`;
     }
     const ts = a[a.length - 1];
     const timeStr = ts ? new Date(Number(ts) * 1000).toISOString().replace("T", " ").slice(0, 19) + " UTC" : "Recorded";
@@ -104,6 +120,8 @@ async function main() {
 | **Initial Seizure & Registration Date** | ${creationDate} |
 | **Anchoring Smart Contract** | \`${contractAddress}\` |
 | **Active Custodian Authority** | \`${custodian}\` |
+| **Judicial Sealing Status** | **${isSealed ? "🔒 SEALED BY COURT ORDER" : "🟢 UNSEALED (ACTIVE CUSTODY)"}** |
+| **Court Docket / Order Rationale** | *${sealReason}* |
 
 ---
 

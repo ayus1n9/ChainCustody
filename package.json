@@ -1,11 +1,12 @@
 {
   "name": "chaincustody",
-  "version": "0.1.0",
+  "version": "0.5.0",
   "description": "Blockchain-based chain of custody for digital evidence (capstone project)",
   "private": true,
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
+    "coverage": "hardhat coverage",
     "selftest": "node client/selftest.js",
     "demo": "hardhat run scripts/demo.js",
     "benchmark": "hardhat run scripts/benchmark.js",

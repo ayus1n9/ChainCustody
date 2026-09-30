@@ -282,5 +282,86 @@ describe("ChainCustody", () => {
       await expect(c.verifyBatchInclusion(999, ethers.ZeroHash, [])).to.be.revertedWithCustomError(c, "EvidenceNotFound");
     });
   });
+
+  describe("judicial evidence sealing", () => {
+    it("allows Court to seal evidence with reason and emits EvidenceSealed", async () => {
+      const { c, court } = await loadFixture(withEvidenceFixture);
+      const reason = "Order 2026-CR-8921: Impound pending judicial inquiry";
+
+      await expect(c.connect(court).sealEvidence(1, reason))
+        .to.emit(c, "EvidenceSealed")
+        .withArgs(1, court.address, reason, anyValue);
+
+      expect(await c.isSealed(1)).to.equal(true);
+      expect(await c.sealReason(1)).to.equal(reason);
+    });
+
+    it("rejects sealing by non-court parties or with empty reason", async () => {
+      const { c, investigator, admin, outsider, court } = await loadFixture(withEvidenceFixture);
+      await expect(c.connect(investigator).sealEvidence(1, "reason")).to.be.revertedWithCustomError(c, "NotAuthorized");
+      await expect(c.connect(admin).sealEvidence(1, "reason")).to.be.revertedWithCustomError(c, "NotAuthorized");
+      await expect(c.connect(outsider).sealEvidence(1, "reason")).to.be.revertedWithCustomError(c, "NotAuthorized");
+
+      await expect(c.connect(court).sealEvidence(1, "")).to.be.revertedWithCustomError(c, "InvalidInput");
+      await expect(c.connect(court).sealEvidence(999, "reason")).to.be.revertedWithCustomError(c, "EvidenceNotFound");
+    });
+
+    it("prevents double-sealing already sealed evidence", async () => {
+      const { c, court } = await loadFixture(withEvidenceFixture);
+      await c.connect(court).sealEvidence(1, "First seal order");
+      await expect(c.connect(court).sealEvidence(1, "Second seal order")).to.be.revertedWithCustomError(c, "EvidenceIsSealed");
+    });
+
+    it("blocks custody transfers and access modifications when sealed", async () => {
+      const { c, investigator, lab, court } = await loadFixture(withEvidenceFixture);
+
+      // Pre-propose transfer before seal
+      await c.connect(investigator).proposeCustodyTransfer(1, lab.address, KEY);
+
+      // Court seals evidence
+      await c.connect(court).sealEvidence(1, "Order: Evidence frozen");
+
+      // All modifying operations must revert with EvidenceIsSealed
+      await expect(c.connect(investigator).grantAccess(1, lab.address, KEY)).to.be.revertedWithCustomError(c, "EvidenceIsSealed");
+      await expect(c.connect(investigator).revokeAccess(1, investigator.address)).to.be.revertedWithCustomError(c, "EvidenceIsSealed");
+      await expect(c.connect(investigator).transferCustody(1, lab.address, KEY)).to.be.revertedWithCustomError(c, "EvidenceIsSealed");
+      await expect(c.connect(investigator).proposeCustodyTransfer(1, lab.address, KEY)).to.be.revertedWithCustomError(c, "EvidenceIsSealed");
+      await expect(c.connect(lab).acceptCustody(1)).to.be.revertedWithCustomError(c, "EvidenceIsSealed");
+    });
+
+    it("allows Court to unseal evidence, restoring modification capability", async () => {
+      const { c, investigator, lab, court } = await loadFixture(withEvidenceFixture);
+      await c.connect(court).sealEvidence(1, "Sealed pending trial");
+      expect(await c.isSealed(1)).to.equal(true);
+
+      // Unseal
+      const unsealReason = "Order: Trial concluded; evidence released for archive";
+      await expect(c.connect(court).unsealEvidence(1, unsealReason))
+        .to.emit(c, "EvidenceUnsealed")
+        .withArgs(1, court.address, unsealReason, anyValue);
+
+      expect(await c.isSealed(1)).to.equal(false);
+      expect(await c.sealReason(1)).to.equal(unsealReason);
+
+      // Modifications work again
+      await expect(c.connect(investigator).grantAccess(1, lab.address, KEY)).to.emit(c, "AccessGranted");
+    });
+
+    it("rejects unsealing if not sealed or if caller is not Court", async () => {
+      const { c, court, investigator } = await loadFixture(withEvidenceFixture);
+      // Not sealed
+      await expect(c.connect(court).unsealEvidence(1, "reason")).to.be.revertedWithCustomError(c, "EvidenceNotSealed");
+
+      // Seal it first
+      await c.connect(court).sealEvidence(1, "reason");
+
+      // Non-court caller
+      await expect(c.connect(investigator).unsealEvidence(1, "reason")).to.be.revertedWithCustomError(c, "NotAuthorized");
+
+      // Empty reason
+      await expect(c.connect(court).unsealEvidence(1, "")).to.be.revertedWithCustomError(c, "InvalidInput");
+    });
+  });
 });
+
 

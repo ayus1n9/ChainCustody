@@ -57,10 +57,16 @@ chaincustody/
 file, the **CID** of the encrypted file in off-chain storage, and the current
 **custodian**. It never stores the file itself. Access is role-based
 (Investigator / Lab / Court / Defense), grantable and revocable only by the current
-custodian, and custody itself can be **transferred** (the actual "chain" in chain of
-custody). Every state change emits an event — that event log **is** the immutable
-audit trail, which is why the contract doesn't also keep a separate on-chain array
-for it (cheaper in gas, same guarantee).
+custodian, and custody itself can be **transferred** via direct or **2-step handover protocol**
+(`proposeCustodyTransfer` → `acceptCustody`).
+
+Additionally, the contract implements a **Judicial Evidence Sealing & Archival Protocol**
+(`sealEvidence` / `unsealEvidence`): only the presiding Court Magistrate can issue formal
+impoundment orders, freezing all custody transfers and key grants to guarantee trial integrity.
+Every state change emits an event — that event log **is** the immutable audit trail, which
+is why the contract doesn't also keep a separate on-chain array for it (cheaper in gas,
+same guarantee).
+
 
 ## Setup
 

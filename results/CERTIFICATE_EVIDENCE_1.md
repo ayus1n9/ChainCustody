@@ -2,7 +2,7 @@
 ## AND CONTINUOUS CHAIN OF CUSTODY
 
 **Certificate Reference**: CC-CERT-2026-0001  
-**Issuance Date**: Wed, 30 Sep 2026 11:40:02 GMT  
+**Issuance Date**: Wed, 30 Sep 2026 11:49:42 GMT  
 **Legal Standard**: Compliant with **Federal Rules of Evidence 902(13)/(14)** & **ISO/IEC 27037:2012**  
 
 ---
@@ -16,9 +16,11 @@
 | **Off-Chain Content Identifier (CID)** | `sim-33e66ceb2ef22b66238d81ac98b15e478546b283d5a5747f3b89fa651f89` |
 | **Cryptographic Encryption Standard** | AES-256-GCM (Authenticated Encryption with Associated Data) |
 | **Key Wrapping Protocol** | RSA-2048 OAEP (SHA-256) Per-Recipient Key Wrapping |
-| **Initial Seizure & Registration Date** | Wed, 30 Sep 2026 11:40:08 GMT |
+| **Initial Seizure & Registration Date** | Wed, 30 Sep 2026 11:49:48 GMT |
 | **Anchoring Smart Contract** | `0x5FbDB2315678afecb367f032d93F642f64180aa3` |
 | **Active Custodian Authority** | `0x90F79bf6EB2c4f870365E785982E1f101E93b906` |
+| **Judicial Sealing Status** | **🟢 UNSEALED (ACTIVE CUSTODY)** |
+| **Court Docket / Order Rationale** | *None (Unsealed / Active Custody)* |
 
 ---
 
@@ -28,11 +30,11 @@ The following immutable events were cryptographically recorded on the distribute
 
 | Block | Event Type | Actor / Authority | Target / Details | Timestamp |
 | :---: | :--- | :--- | :--- | :---: |
-| **#6** | `EvidenceRegistered` | `0x709979...dc79C8` | Registered ground truth hash: 0x90acf3be541b... | 2026-09-30 11:40:08 UTC |
-| **#7** | `AccessGranted` | `0x709979...dc79C8` | Recipient: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC | 2026-09-30 11:40:09 UTC |
-| **#8** | `AccessLogged` | `0x3C44Cd...4293BC` | Integrity verified & inspected | 2026-09-30 11:40:10 UTC |
-| **#9** | `CustodyTransferred` | `0x709979...dc79C8` | Custody handed over to: 0x90F79bf6EB2c4f870365E785982E1f101E93b906 | 2026-09-30 11:40:11 UTC |
-| **#10** | `AccessGranted` | `0x90F79b...93b906` | Recipient: 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65 | 2026-09-30 11:40:12 UTC |
+| **#6** | `EvidenceRegistered` | `0x709979...dc79C8` | Registered ground truth hash: 0x90acf3be541b... | 2026-09-30 11:49:48 UTC |
+| **#7** | `AccessGranted` | `0x709979...dc79C8` | Recipient: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC | 2026-09-30 11:49:49 UTC |
+| **#8** | `AccessLogged` | `0x3C44Cd...4293BC` | Integrity verified & inspected | 2026-09-30 11:49:50 UTC |
+| **#9** | `CustodyTransferred` | `0x709979...dc79C8` | Custody handed over to: 0x90F79bf6EB2c4f870365E785982E1f101E93b906 | 2026-09-30 11:49:51 UTC |
+| **#10** | `AccessGranted` | `0x90F79b...93b906` | Recipient: 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65 | 2026-09-30 11:49:52 UTC |
 
 
 ---
