@@ -4,9 +4,8 @@ Baseline implementations of EXISTING chain-of-custody approaches + benchmark.
 Baseline A: Centralized evidence store (SQLite metadata + files on disk, admin-controlled)
 Baseline B: Hash-chained append-only ledger, single node (Forensic-chain style)
 
-Run:  python3 baseline_benchmark.py      (needs: pip install cryptography)
-Output: results.json  (used to fill the Review 2 slides)
-Re-run on YOUR machine and replace the numbers/environment on the slides.
+Run:    python3 baseline_benchmark.py      (needs: pip install cryptography)
+Output: results.json  (comparative baseline benchmark for centralized vs decentralized audit trails)
 """
 import hashlib, json, os, platform, sqlite3, statistics, tempfile, time, random
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM

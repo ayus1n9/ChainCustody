@@ -53,5 +53,5 @@ For a mid-sized law enforcement agency or forensic laboratory processing **1,000
 - **Polygon (L2)**: **$19.72 / month**
 - **Net Monthly Savings**: **$98585.89 (99.98% reduction)**
 
-### Viva / Defense Takeaway:
+### Production & Deployment Takeaway:
 Running digital chain-of-custody directly on Ethereum Mainnet is economically prohibitive for public sector agencies ($100k+/year in transaction fees alone). Deploying on an L2 (Polygon) achieves identical cryptographic security and immutable court admissibility for less than **$19.72/month**, proving practical real-world feasibility.

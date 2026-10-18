@@ -139,7 +139,7 @@ async function main() {
     note: "EVM gas is deterministic and identical across chains; cost difference stems from token price and network base fee."
   }, null, 2));
 
-  // Generate Markdown report for presentation / viva
+  // Generate Markdown report for architectural and economic analysis
   const mdOut = path.join(__dirname, "..", "results", "GAS_REPORT.md");
   const mdContent = `# ChainCustody: Gas Benchmark & Economic Analysis (L2 vs L1)
 
@@ -196,7 +196,7 @@ For a mid-sized law enforcement agency or forensic laboratory processing **1,000
 - **Polygon (L2)**: **\$${monthlyL2.toFixed(2)} / month**
 - **Net Monthly Savings**: **\$${(monthlyL1 - monthlyL2).toFixed(2)} (${(((monthlyL1 - monthlyL2) / monthlyL1) * 100).toFixed(2)}% reduction)**
 
-### Viva / Defense Takeaway:
+### Production & Deployment Takeaway:
 Running digital chain-of-custody directly on Ethereum Mainnet is economically prohibitive for public sector agencies ($100k+/year in transaction fees alone). Deploying on an L2 (Polygon) achieves identical cryptographic security and immutable court admissibility for less than **\$${monthlyL2.toFixed(2)}/month**, proving practical real-world feasibility.
 `;
 

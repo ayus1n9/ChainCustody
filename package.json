@@ -1,7 +1,7 @@
 {
   "name": "chaincustody",
   "version": "1.0.0",
-  "description": "Blockchain-based chain of custody for digital evidence (capstone project)",
+  "description": "Decentralized digital evidence chain-of-custody and forensic integrity protocol compliant with FRE 902(13)/(14) and ISO/IEC 27037:2012",
   "private": true,
   "scripts": {
     "compile": "hardhat compile",
