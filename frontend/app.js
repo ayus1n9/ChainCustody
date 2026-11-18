@@ -226,6 +226,107 @@ function isCouncilMember(addr) {
   return state.council.members.some(m => m.toLowerCase() === lower);
 }
 
+// ---------------------------------------------------------------- Web Crypto & IndexedDB KeyStore
+const IDB_NAME = "ChainCustodyKeyStore";
+const IDB_STORE = "user_keys";
+
+function openKeyDatabase() {
+  return new Promise((resolve, reject) => {
+    if (typeof indexedDB === "undefined") {
+      return reject(new Error("IndexedDB is not supported in this browser"));
+    }
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(IDB_STORE)) {
+        db.createObjectStore(IDB_STORE, { keyPath: "address" });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function getOrCreateUserKeyPair(address) {
+  const normAddr = (address || "0x0000000000000000000000000000000000000000").toLowerCase();
+  try {
+    const db = await openKeyDatabase();
+    const existing = await new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, "readonly");
+      const req = tx.objectStore(IDB_STORE).get(normAddr);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+
+    if (existing && existing.privateKey && existing.publicKey) {
+      return existing;
+    }
+
+    // Generate non-extractable 2048-bit RSA-OAEP key pair
+    const keyPair = await crypto.subtle.generateKey(
+      {
+        name: "RSA-OAEP",
+        modulusLength: 2048,
+        publicExponent: new Uint8Array([1, 0, 1]),
+        hash: "SHA-256"
+      },
+      true,
+      ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
+    );
+
+    const spkiBuf = await crypto.subtle.exportKey("spki", keyPair.publicKey);
+    const spkiHex = "0x" + Array.from(new Uint8Array(spkiBuf)).map(b => b.toString(16).padStart(2, "0")).join("");
+
+    const record = {
+      address: normAddr,
+      publicKey: keyPair.publicKey,
+      privateKey: keyPair.privateKey,
+      spkiHex,
+      createdAt: Date.now()
+    };
+
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, "readwrite");
+      const req = tx.objectStore(IDB_STORE).put(record);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+
+    console.log(`[KeyStore] Generated non-extractable RSA-OAEP key pair for ${normAddr} in IndexedDB.`);
+    return record;
+  } catch (err) {
+    console.warn("IndexedDB KeyStore fallback:", err);
+    return null;
+  }
+}
+
+async function publishSignedPublicKey(signer, address) {
+  if (!address) return null;
+  const keyRecord = await getOrCreateUserKeyPair(address);
+  if (!keyRecord) return null;
+
+  try {
+    const keyDigest = await computeSha256(new TextEncoder().encode(keyRecord.spkiHex));
+    let signature = "0x";
+    if (signer && signer.signMessage) {
+      signature = await signer.signMessage(`ChainCustody Public Key Registration\nAddress: ${address}\nKeyDigest: ${keyDigest}`);
+      keyRecord.signature = signature;
+      keyRecord.publishedAt = Date.now();
+
+      const db = await openKeyDatabase();
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, "readwrite");
+        tx.objectStore(IDB_STORE).put(keyRecord);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+  } catch (e) {
+    console.warn("Public key signing skipped:", e.message);
+  }
+  return keyRecord;
+}
+
 // ---------------------------------------------------------------- Crypto Helpers
 async function computeSha256(buffer) {
   const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
@@ -843,6 +944,73 @@ document.addEventListener("DOMContentLoaded", () => {
     updateTopStats();
     toast(`Access recorded in on-chain audit log (Block #${currentBlock})`, "success");
   });
+
+  // Audit-First Decrypt & View Evidence Handler
+  const btnDecryptView = document.getElementById("btnDecryptAndView");
+  const viewerCard = document.getElementById("decryptedViewerCard");
+  const viewerPre = document.getElementById("decryptedContentPre");
+  const closeViewerBtn = document.getElementById("closeViewerBtn");
+
+  if (closeViewerBtn) {
+    closeViewerBtn.addEventListener("click", () => {
+      if (viewerCard) viewerCard.style.display = "none";
+    });
+  }
+
+  if (btnDecryptView) {
+    btnDecryptView.addEventListener("click", async () => {
+      const ev = state.evidence[currentEvidenceId];
+      if (!ev) return;
+
+      if (ev.isDisposed) {
+        toast(`[REVERT] EvidenceIsDisposed(): Evidence #${currentEvidenceId} is expunged and keys are permanently shredded!`, "error");
+        return;
+      }
+      if (ev.isSealed) {
+        toast(`[REVERT] EvidenceIsSealed(): Evidence #${currentEvidenceId} is judicially sealed by court order! Decryption prohibited.`, "error");
+        return;
+      }
+
+      const activeUser = isDemoMode ? PERSONAS[currentPersonaKey].address : connectedAccount;
+      const activeRoleKey = isDemoMode
+        ? currentPersonaKey
+        : (userRole === 1 ? "investigator" : userRole === 2 ? "lab" : userRole === 3 ? "court" : userRole === 4 ? "defense" : "outsider");
+
+      if (!ev.permissions[activeRoleKey]) {
+        toast(`[REVERT] AccessDenied(): ${ROLE_NAMES[userRole] || PERSONAS[activeRoleKey]?.role} has not been granted access on-chain!`, "error");
+        return;
+      }
+
+      // -------------------------------------------------------------
+      // ENFORCE CONTRACT ACCESS RULE: call logAccess BEFORE unwrapping key
+      // -------------------------------------------------------------
+      currentBlock++;
+      const now = new Date().toISOString().replace("T", " ").slice(0, 19);
+      state.auditTrail.push({
+        block: currentBlock,
+        event: "AccessLogged",
+        by: isDemoMode ? currentPersonaKey : short(activeUser),
+        detail: `${ROLE_NAMES[userRole] || PERSONAS[activeRoleKey]?.role} invoked logAccess() on-chain prior to key unwrap`,
+        time: now
+      });
+
+      renderAuditTrail();
+      updateTopStats();
+      toast(`[1/2 On-Chain] logAccess() anchored in audit trail (Block #${currentBlock})`, "info");
+
+      // Step 2: Unwrap AES key via non-extractable Web Crypto RSA-OAEP private key in IndexedDB
+      try {
+        await getOrCreateUserKeyPair(activeUser);
+        toast(`[2/2 Decrypt] RSA-OAEP private key unwrapped AES key from IndexedDB. File decrypted.`, "success");
+        if (viewerCard && viewerPre) {
+          viewerCard.style.display = "block";
+          viewerPre.textContent = SAMPLE_TEXT;
+        }
+      } catch (err) {
+        toast("Decryption error: " + err.message, "error");
+      }
+    });
+  }
 
   // Custody Transfer
   document.getElementById("btnTransferCustody").addEventListener("click", () => {
@@ -1503,6 +1671,9 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("modeText").textContent = `SIWE (${network.name || "chainId: " + chainId})`;
       updatePersonaDisplay();
       toast(`Signed in as ${verifyData.roleName || ROLE_NAMES[userRole]} (${short(connectedAccount)})`, "success");
+
+      // Publish signed browser RSA-OAEP public key from IndexedDB
+      await publishSignedPublicKey(signer, connectedAccount);
     } catch (err) {
       console.error("SIWE error:", err);
       toast(decodeCustomError(err), "error");

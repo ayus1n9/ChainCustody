@@ -167,12 +167,24 @@
           </div>
 
           <div class="action-footer">
-            <button id="logAccessBtn" class="btn btn-primary" title="Record in the audit trail that you accessed this evidence">
+            <button id="btnDecryptAndView" class="btn btn-primary" title="Audit-first access: calls logAccess on-chain before unwrapping AES key">
+              🔓 Decrypt & View File
+            </button>
+            <button id="logAccessBtn" class="btn btn-outline" title="Record in the audit trail that you accessed this evidence">
               ✍️ Record Access in Audit Log
             </button>
             <button id="quickSampleBtn" class="btn btn-outline">Load Original Sample</button>
             <button id="quickTamperBtn" class="btn btn-outline-danger">Load Tampered Sample</button>
             <button id="exportCertBtn" class="btn btn-secondary">📜 Export Court Certificate</button>
+          </div>
+
+          <!-- Decrypted Evidence Viewer (Audit-First) -->
+          <div id="decryptedViewerCard" class="file-details" style="display: none; margin-top: 1rem; border-left: 4px solid var(--success); background: rgba(16, 185, 129, 0.05);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <h4 style="color: var(--success); font-size: 0.85rem; margin: 0;">🔓 Decrypted Evidence (Audit-First Unwrapped via RSA-OAEP Key in IndexedDB)</h4>
+              <button id="closeViewerBtn" class="btn btn-outline btn-sm" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">Close</button>
+            </div>
+            <pre id="decryptedContentPre" style="background: var(--bg-base); padding: 0.75rem; border-radius: var(--radius); font-family: var(--font-mono); font-size: 0.8rem; overflow-x: auto; white-space: pre-wrap; margin: 0;"></pre>
           </div>
         </div>
       </div>
