@@ -9,21 +9,21 @@
 
 ## 1. Executive Summary & Problem Context
 
-In modern judicial and forensic proceedings, over **70% of electronic evidence** presented in courts faces admissibility challenges regarding authenticity, custodial gaps, potential tampering, or spoliation. Conventional forensic and laboratory records rely on centralized databases (such as Laboratory Information Management Systems — LIMS) or paper evidence logs.
+In modern judicial and forensic proceedings, industry surveys project that a substantial proportion of electronic evidence (with legal-technology literature frequently citing figures up to 70%) encounters admissibility challenges regarding authenticity, custodial gaps, potential tampering, or spoliation. Conventional forensic and laboratory records rely on centralized databases (such as Laboratory Information Management Systems — LIMS) or paper evidence logs.
 
 ### Key Vulnerabilities of Existing Systems:
 1. **Insider Threats & Database Manipulation**: Centralized database administrators can silently modify timestamps, alter logs, or replace hash records without cryptographic detection.
 2. **Unilateral Evidence Spoliation**: Evidence can be prematurely destroyed or altered before statutory retention deadlines, in violation of **Federal Rules of Civil Procedure 37(e)**.
 3. **Loss of Physical Hardware Provenance**: Digital disk images and files lose immutable binding to the physical hardware seized at crime scenes, weakening chain of custody under **Federal Rules of Evidence 902(13)/(14)** and **ISO/IEC 27037:2012**.
-4. **Blockchain Scalability & Confidentiality Fallacy**: Naive blockchain systems attempt to store large media files directly on-chain, exposing sensitive case data publicly and incurring millions of dollars in gas costs.
+4. **Blockchain Scalability & Confidentiality Fallacy**: Naive blockchain systems attempt to store large media files directly on-chain, exposing sensitive case data publicly and incurring prohibitive gas costs.
 
 ### The ChainCustody Solution:
 ChainCustody implements a **Hybrid On-Chain/Off-Chain Cryptographic Architecture**:
 - **Confidentiality**: Zero plaintext ever touches the ledger. Evidence is encrypted client-side using authenticated **AES-256-GCM** and stored off-chain via content-addressed storage (IPFS/local content-addressed simulator).
 - **Access Control**: AES symmetric keys are wrapped per recipient using **RSA-2048 OAEP** and managed via smart contract role authorization.
 - **Integrity**: Ground-truth SHA-256 digests and cryptographic Merkle tree roots are anchored on-chain with $O(\log N)$ batch inclusion proofs.
-- **Legal Non-Repudiation**: Continuous on-chain event logs guarantee tamper-evident audit trails compliant with FRE 902, ISO 27037, and statutory retention time-locks.
-- **Economic Viability**: L2 deployment on Polygon delivers **99.98% gas cost savings** compared to Ethereum L1 ($0.02 vs $98.60 per case).
+- **Legal Non-Repudiation**: Continuous on-chain event logs provide technical foundation for self-authenticating digital records under FRE 902(13)/(14), ISO/IEC 27037, and statutory retention time-locks.
+- **Economic Viability (Theoretical L1 vs L2 Projection)**: Theoretical comparison based on market gas and token rates (September 2026 baseline: ETH $3,000 at 25 Gwei vs POL $0.50 at 30 Gwei) projects up to **99.98% cost savings** ($0.02 vs $98.60 per case) between Polygon L2 and Ethereum L1; actual EVM computation gas remains identical across both networks.
 
 ---
 
@@ -77,6 +77,9 @@ ChainCustody implements a **Hybrid On-Chain/Off-Chain Cryptographic Architecture
 | **FRCP Rule 37(e)** | Legal obligations to preserve electronically stored information (anti-spoliation) | `placeEvidentiaryHold` imposes mathematical time-locks on evidence records, reverting any expungement or disposal attempts before statutory expiry. |
 | **GDPR / Expungement Mandates** | Right to erasure / court expungement decrees | `proposeDisposal` + `confirmDisposal` executes multi-party cryptographic key shredding, erasing AES keys while leaving an immutable audit record proving lawful compliance. |
 
+> [!NOTE]
+> **Evidentiary Disclaimer**: ChainCustody provides the technical and cryptographic foundation for satisfying the self-authentication requirements of Federal Rules of Evidence 902(13) and 902(14) (demonstrating system process accuracy and hash comparison). It provides cryptographic evidence records, not formal legal certification or automated admissibility guarantees, which remain subject to judicial discretion and expert testimony.
+
 ---
 
 ## 4. Forensic Hardware Provenance & Metadata Anchoring
@@ -109,7 +112,7 @@ ChainCustody implements an $O(\log N)$ cryptographic Merkle Tree:
 - **Tree Construction**: Client computes pairwise SHA-256 digests from sorted leaf hashes to establish a deterministic binary Merkle Tree.
 - **On-Chain Anchor**: Only the 32-byte Merkle Root is submitted to `registerEvidence(..., merkleRoot, ...)`.
 - **Lightweight Verification**: To prove that file $k$ was seized as part of the 1,024-file dossier, the examiner provides an inclusion proof of $\lceil \log_2(1024) \rceil = 10$ hashes (320 bytes).
-- **Execution Cost**: On-chain verification (`verifyMerkleProof`) executes in under **28,000 gas** (~15 milliseconds on EVM).
+- **Execution Cost**: On-chain verification (`verifyMerkleProof`) executes in **40,126 gas** (measured for 1,024 leaves in `paper_eval/gas_extended.json`, under ~15 milliseconds on EVM).
 
 ---
 
@@ -187,13 +190,16 @@ Gas benchmarks measured with Hardhat, Solidity 0.8.20, and `hardhat-gas-reporter
 | **grantAccess** | 46,120 | 46,120 | 46,120 | $O(1)$ |
 | **logAccess** | 28,450 | 28,450 | 28,450 | $O(1)$ |
 | **transferCustody (2-Step)** | 48,650 | 48,650 | 48,650 | $O(1)$ |
-| **verifyMerkleProof** | 27,850 | 27,850 | 27,850 | $O(\log N)$ |
+| **verifyMerkleProof** | 40,126 | 40,126 | 40,126 | $O(\log N)$ |
 | **revokeAccess** | 31,210 | 31,210 | 31,210 | $O(1)$ |
 
 > **$O(1)$ Scaling Property**: Benchmarking evidence registration across registries of 0, 50, 100, and 200 items proves that gas cost remains strictly constant (~395k gas). State lookup uses mappings rather than dynamic array traversals.
 
-### Economic Comparison: Ethereum L1 vs Polygon L2
-- **Assumptions**:
+### Theoretical Economic Comparison: Ethereum L1 vs Polygon L2 (September 2026 Model)
+> [!NOTE]
+> **Model Basis**: This is a theoretical comparison modeling identical deterministic EVM execution gas under assumed pricing parameters (Ethereum L1: 25 Gwei, $3,000/ETH; Polygon PoS/Amoy: 30 Gwei, $0.50/POL, modeled as of September 2026). It serves as an economic feasibility projection, not measured live multi-network production billing.
+
+- **Parameters**:
   - Ethereum L1: Gas Price = 25 Gwei, ETH = $3,000
   - Polygon L2: Gas Price = 30 Gwei, POL = $0.50
 - **Cost Comparison for 1,000 cases / month**:
@@ -246,13 +252,13 @@ Gas benchmarks measured with Hardhat, Solidity 0.8.20, and `hardhat-gas-reporter
 > **Answer**: The contract maintains a sequential nonce counter per evidence ID (`nonces[id]`). Every signed handover payload incorporates the current nonce. Once executed, the contract increments `nonces[id]++`. If an attacker or compromised relayer attempts to replay the same signature, the struct hash calculation fails to match the new nonce, reverting with `InvalidSignature()`.
 
 ### Q8: What is the computational and gas overhead of Merkle batch inclusion verification?
-> **Answer**: For a dossier of $N$ files, the proof length is $\lceil \log_2 N \rceil$. For a batch of 1,024 files, the proof is only 10 hashes (320 bytes). In our benchmark tests, on-chain proof verification requires only **27,850 gas**, executing in under 15 milliseconds on EVM.
+> **Answer**: For a dossier of $N$ files, the proof length is $\lceil \log_2 N \rceil$. For a batch of 1,024 files, the proof is only 10 hashes (320 bytes). In empirical benchmark tests (`paper_eval/gas_extended.json`), on-chain proof verification requires **40,126 gas**, executing in under 15 milliseconds on EVM.
 
 ### Q9: What happens if an authorized party's private key is compromised?
-> **Answer**: The smart contract features administrative **Party Deregistration (`deregisterParty`)**. The admin revokes the compromised address, immediately blocking it from receiving custody, accepting handovers, or sealing evidence. Furthermore, access to individual evidence items can be revoked instantaneously via `revokeAccess()`, which wipes the encrypted AES key for that party from contract storage.
+> **Answer**: The smart contract features administrative **Party Deregistration (`deregisterParty`)** via the Two-Person `RoleCouncil`. Council members propose and approve revocation, immediately blocking the compromised address from receiving custody, accepting handovers, or sealing evidence. Furthermore, access to individual evidence items can be revoked instantaneously via `revokeAccess()`, which wipes the encrypted AES key for that party from contract storage.
 
 ### Q10: Why choose Polygon L2 over Ethereum Mainnet for departmental deployment?
-> **Answer**: Our empirical gas benchmark measured an average custody lifecycle cost of **$98.60 on Ethereum Mainnet** (at 25 Gwei, $3,000/ETH) versus **$0.0197 on Polygon L2** (at 30 Gwei, $0.50/POL). For an agency handling 1,000 cases per month, Mainnet costs **$98,605/month**, whereas Polygon costs **$19.72/month**—a **99.98% cost reduction** that transforms blockchain verification into an economically viable public infrastructure.
+> **Answer**: Our theoretical economic model projected an average custody lifecycle cost of **$98.60 on Ethereum Mainnet** (at 25 Gwei, $3,000/ETH) versus **$0.0197 on Polygon L2** (at 30 Gwei, $0.50/POL) based on September 2026 economic parameters. For an agency handling 1,000 cases per month, Mainnet is modeled at **$98,605/month**, whereas Polygon is modeled at **$19.72/month**—a **99.98% cost reduction projection** that demonstrates the economic viability of public L2 infrastructure over L1 settlement.
 
 ---
 
@@ -268,5 +274,55 @@ Gas benchmarks measured with Hardhat, Solidity 0.8.20, and `hardhat-gas-reporter
 | **Gasless Field Attestation**| N/A | None | CA-based PKI | **EIP-712 Replay-Safe Nonces** |
 | **Spoliation Prevention** | Administrative Policy | None | Policy Only | **Mathematical Retention Time-Lock** |
 | **Lawful Expungement** | Database DELETE | Impossible | Channel Drop | **Multi-Party Key Shredding** |
-| **Operating Cost (1k cases)**| $5,000/mo (Cloud) | $98,605/mo (Gas) | $1,500/mo (Infra) | **$19.72/mo (Polygon L2)** |
-| **Legal Admissibility** | FRE 902 Dependent | Challenged | FRE 902 Dependent | **FRE 902 + ISO 27037 Certified** |
+| **Operating Cost (1k cases)**| $5,000/mo (Cloud) | $98,605/mo (Gas) | $1,500/mo (Infra) | **$19.72/mo (Polygon L2 Model)** |
+| **Legal Admissibility** | FRE 902 Dependent | Challenged | FRE 902 Dependent | **FRE 902(13)/(14) Technical Foundation** |
+
+---
+
+## 13. Security Model & Threat Assumptions
+
+ChainCustody establishes a defense-in-depth security model combining cryptographic commitments, smart contract access control, and cross-chain checkpoint witnessing.
+
+### 13.1 What is Protected
+1. **Wallet Authentication & Session Security (EIP-4361 SIWE)**:
+   - Web dashboard access requires cryptographic authentication via Sign-In with Ethereum (EIP-4361).
+   - Single-use, 5-minute random nonces, strict chain ID and domain verification, and rate limiting (10 req/min/IP) prevent credential abuse and replay.
+   - Sessions are secured with `httpOnly`, `SameSite=Strict`, and `Secure` (over HTTPS) cookies; the unauthenticated role dropdown is completely eliminated outside demo mode.
+2. **Administrative Privilege Escalation (Two-Person Rule)**:
+   - The `RoleCouncil` contract enforces M-of-N multi-signature approvals (default 2-of-3) with 7-day expiration for party registration and deregistration.
+   - A single admin address cannot unilaterally grant itself or any third party arbitrary roles ("admin grants itself Investigator").
+3. **Evidence File Tampering & Substitution**:
+   - Any modification to off-chain ciphertext breaks IPFS content-addressing (CID mismatch).
+   - Any corruption or bit-flip within ciphertext fails AES-256-GCM authentication tag verification.
+   - Any forged re-encryption with the correct AES key fails on-chain `verifyIntegrity(id, computedHash)` against the immutable SHA-256 ground truth.
+4. **Unauthorized Custody Handovers**:
+   - Only the designated active custodian can transfer or propose custody transfer.
+   - 2-Step Handover requires explicit acceptance by the recipient before custody transfers.
+   - EIP-712 structured data handovers enforce sequential nonce increments (`nonces[id]++`), preventing signature replay across transactions.
+5. **Chain History Rewriting (Reorganization / Fork Attacks)**:
+   - The `CheckpointWitness` service anchors custody block hashes at regular block intervals ($k$) to an external, independently governed chain, allowing immediate detection of reorganization or history rewriting below the checkpoint height.
+6. **Demo Mode Isolation**:
+   - `DEMO_MODE=true` is strictly isolated to loopback `127.0.0.1` and displays a permanent simulation banner.
+   - With `DEMO_MODE=false` (default), simulator components, persona selectors, and mock credentials are never served or permitted.
+7. **Premature or Unilateral Evidence Spoliation**:
+   - Time-locked evidentiary holds (`placeEvidentiaryHold`) block disposal and expungement attempts until statutory retention deadlines expire.
+   - Multi-party expungement requires dual authorization: Court judicial proposal + Custodian confirmation.
+8. **Audit Trail Evasion**:
+   - Access to evidence strictly enforces contract-level `logAccess(evidenceId)` before the browser unwraps keys.
+   - Private keys are stored as non-extractable CryptoKey objects in browser IndexedDB.
+
+### 13.2 What is Out of Scope / Unprotected
+1. **Tampering Prior to Registration**:
+   - Cryptographic anchoring guarantees integrity and immutability *from the instant of registration onward*. If physical evidence is tampered with, corrupted, or fabricated prior to digital acquisition and on-chain registration, the system will accurately anchor the tampered file.
+2. **Keys Already Published or Compromised**:
+   - If a party's private key or an evidence item's AES decryption key was previously exposed or compromised off-platform, historical ciphertext encrypted under that key can be decrypted by unauthorized parties holding that key. On-chain revocation (`revokeAccess`) wipes the wrapped key from state to prevent future contract retrieval, but cannot retract or re-encrypt data already decrypted.
+3. **Public On-Chain Metadata**:
+   - While evidence plaintext and symmetric keys remain encrypted and confidential, metadata written directly to the ledger (SHA-256 hashes, IPFS CIDs, timestamps, party addresses, case IDs, and custody transaction graphs) is publicly readable on-chain. Pseudonymity depends on operational wallet separation; zero-knowledge shielding of case metadata is not implemented.
+4. **Compromised Client Endpoint / Operating System**:
+   - If an examiner's machine is infected with malware, a keylogger, or unauthorized screen capture software, plaintext evidence can be inspected post-decryption in volatile memory.
+5. **Rogue Investigator with Valid Credentials**:
+   - An authorized investigator possessing authentic credentials can register fraudulent evidence; the protocol guarantees custody provenance and anti-tampering, not the physical authenticity of real-world objects prior to imaging.
+6. **Simultaneous 51% Consensus Attacks on Both Chains**:
+   - If an adversary commands sufficient hashrate/stake to reorganize both the primary custody blockchain and the external witness ledger simultaneously, cross-chain checkpoint reconciliation could theoretically be subverted.
+7. **Lost Private Keys / Offline Secrets**:
+   - If an authorized party loses their private key, their access cannot be recovered without an explicit re-grant and re-encryption by the current custodian.
