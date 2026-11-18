@@ -1,53 +1,53 @@
 {
   "summary": {
-    "deployment": 1175994,
+    "deployment": 3017106,
     "registerEvidence": {
       "n": 200,
-      "mean": 395133,
-      "min": 395025,
-      "max": 412149
+      "mean": 395169,
+      "min": 395061,
+      "max": 412185
     },
     "grantAccess": {
       "n": 30,
-      "mean": 257847,
-      "min": 257847,
-      "max": 257847
+      "mean": 262565,
+      "min": 262565,
+      "max": 262565
     },
     "logAccess": {
       "n": 30,
-      "mean": 27728,
-      "min": 27728,
-      "max": 27728
+      "mean": 30036,
+      "min": 30036,
+      "max": 30036
     },
     "revokeAccess": {
       "n": 30,
-      "mean": 64047,
-      "min": 64047,
-      "max": 64047
+      "mean": 67840,
+      "min": 67840,
+      "max": 67840
     },
     "transferCustody": {
       "n": 30,
-      "mean": 260979,
-      "min": 260979,
-      "max": 260979
+      "mean": 265263,
+      "min": 265263,
+      "max": 265263
     }
   },
   "scaling": [
     {
       "registrySizeBefore": 0,
-      "registerGas": 412149
+      "registerGas": 412185
     },
     {
       "registrySizeBefore": 49,
-      "registerGas": 395049
+      "registerGas": 395085
     },
     {
       "registrySizeBefore": 99,
-      "registerGas": 395049
+      "registerGas": 395085
     },
     {
       "registrySizeBefore": 199,
-      "registerGas": 395049
+      "registerGas": 395085
     }
   ],
   "parameters": {
@@ -64,39 +64,39 @@
   },
   "comparison": {
     "deployment": {
-      "meanGas": 1175994,
-      "costL1": 88.19955,
-      "costL2": 0.01763991,
-      "savingsRatio": 5000
+      "meanGas": 3017106,
+      "costL1": 226.28295,
+      "costL2": 0.045256590000000006,
+      "savingsRatio": 4999.999999999999
     },
     "registerEvidence": {
-      "meanGas": 395133,
-      "costL1": 29.634975,
-      "costL2": 0.005926995,
+      "meanGas": 395169,
+      "costL1": 29.637675,
+      "costL2": 0.005927535,
       "savingsRatio": 5000
     },
     "grantAccess": {
-      "meanGas": 257847,
-      "costL1": 19.338525,
-      "costL2": 0.0038677050000000004,
+      "meanGas": 262565,
+      "costL1": 19.692375000000002,
+      "costL2": 0.003938475,
       "savingsRatio": 5000
     },
     "logAccess": {
-      "meanGas": 27728,
-      "costL1": 2.0796,
-      "costL2": 0.00041592,
+      "meanGas": 30036,
+      "costL1": 2.2527000000000004,
+      "costL2": 0.00045054000000000003,
       "savingsRatio": 5000
     },
     "revokeAccess": {
-      "meanGas": 64047,
-      "costL1": 4.8035250000000005,
-      "costL2": 0.0009607050000000001,
+      "meanGas": 67840,
+      "costL1": 5.088,
+      "costL2": 0.0010176,
       "savingsRatio": 5000
     },
     "transferCustody": {
-      "meanGas": 260979,
-      "costL1": 19.573425,
-      "costL2": 0.003914685,
+      "meanGas": 265263,
+      "costL1": 19.894725,
+      "costL2": 0.003978945,
       "savingsRatio": 5000
     }
   },
@@ -108,9 +108,9 @@
       "revokeAccess": 500,
       "transferCustody": 1000
     },
-    "costL1": 98605.6125,
-    "costL2": 19.7211225,
-    "savingsUsd": 98585.8913775
+    "costL1": 100471.95000000003,
+    "costL2": 20.09439,
+    "savingsUsd": 100451.85561000003
   },
   "note": "EVM gas is deterministic and identical across chains; cost difference stems from token price and network base fee."
 }

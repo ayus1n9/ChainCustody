@@ -1,0 +1,63 @@
+{
+  "runs": 1000,
+  "fileBytes": 4096,
+  "attacker": "contract admin + storage operator + holder of AES key; S4/S5 also the only node",
+  "detectionRate": {
+    "S1": 1,
+    "S1_lyingStorage": 1,
+    "S2": 1,
+    "S3": 1,
+    "S4": 0,
+    "S5": 1
+  },
+  "detail": {
+    "S1": {
+      "runs": 1000,
+      "detected": 1000,
+      "byLayer": {
+        "CID": 1000
+      }
+    },
+    "S1_lyingStorage": {
+      "runs": 1000,
+      "detected": 1000,
+      "byLayer": {
+        "GCM": 1000
+      }
+    },
+    "S2": {
+      "runs": 1000,
+      "detected": 1000,
+      "byLayer": {
+        "hash": 1000
+      }
+    },
+    "S2_anchorChanged": 0,
+    "S2_adminForgedNewItems": 1000,
+    "S3": {
+      "runs": 1000,
+      "detected": 1000,
+      "byLayer": {
+        "event log": 1000
+      }
+    },
+    "S4": {
+      "runs": 1000,
+      "detected": 0,
+      "byLayer": {}
+    },
+    "S4_chainConsistent": 1000,
+    "S5": {
+      "runs": 1000,
+      "detected": 1000,
+      "byLayer": {
+        "anchored head hash": 1000
+      }
+    }
+  },
+  "accessLoggedEventsAfterDeregistration": 3000,
+  "env": {
+    "hardhat": "2.29.1",
+    "node": "v22.23.4"
+  }
+}

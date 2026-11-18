@@ -1,6 +1,6 @@
 # ChainCustody
 
-[![Tests](https://img.shields.io/badge/tests-55%2F55%20passing-brightgreen.svg)](test/ChainCustody.test.js)
+[![Tests](https://img.shields.io/badge/tests-119%2F119%20passing-brightgreen.svg)](test/ChainCustody.test.js)
 [![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](test/ChainCustody.test.js)
 [![Solidity](https://img.shields.io/badge/solidity-0.8.20-blue.svg)](contracts/ChainCustody.sol)
 [![Standards](https://img.shields.io/badge/compliance-FRE%20902%20%7C%20ISO%2027037-success.svg)](docs/ARCHITECTURE.md)
@@ -30,7 +30,9 @@ In digital forensics, electronic evidence faces constant courtroom challenges re
 ```
 chaincustody/
 ├── contracts/
-│   └── ChainCustody.sol        Solidity contract: parties, evidence, access, custody, audit
+│   ├── ChainCustody.sol        Solidity contract: parties, evidence, access, custody, audit
+│   ├── ChainCustodyCommit.sol  Commitment variant: keccak256 commitment in storage, logged keys
+│   └── CheckpointWitness.sol   Cross-chain checkpoint witness contract
 ├── client/
 │   ├── crypto.js                SHA-256 hash, AES-256-GCM encrypt/decrypt, RSA key wrap/unwrap
 │   ├── merkle.js                Cryptographic Merkle Tree for bulk evidence dossiers & proofs
@@ -45,12 +47,20 @@ chaincustody/
 │   ├── server.js                Zero-dependency local server for the web dashboard
 │   ├── verify.js                Standalone forensic terminal verification CLI
 │   └── certify.js               Court-admissible certificate generator (FRE 902 / Sec 65B)
+├── paper_eval/                  Empirical evaluation scripts & benchmark outputs
+│   ├── gas_compare.js           Gas comparison (ChainCustody vs ChainCustodyCommit)
+│   ├── gas_extended.js          Extended gas benchmarks (metadata, EIP-712, holds, Merkle)
+│   ├── checkpoint_gas.js        Steady-state gas of CheckpointWitness.checkpoint
+│   ├── replay_scenarios.js      Adversarial insider tamper replay (scenarios S1–S5)
+│   └── witness_replay.js        External checkpoint witness replay experiments
 ├── frontend/
 │   ├── index.html               Web dashboard (role switcher, verify, custody, timeline)
 │   ├── style.css                Modern dark forensic theme
 │   └── app.js                   Web Crypto API + simulation & Web3 MetaMask provider
 ├── test/
-│   └── ChainCustody.test.js     Hardhat/Mocha/Chai unit tests (55 passing, 100% coverage)
+│   ├── ChainCustody.test.js     Unit tests for ChainCustody (55 tests)
+│   ├── ChainCustodyCommit.test.js Unit tests for ChainCustodyCommit (60 tests)
+│   └── CheckpointWitness.test.js  Unit tests for CheckpointWitness (4 tests)
 ├── baseline/
 │   ├── baseline_benchmark.py    Comparative benchmark: centralized store vs hash-chained ledger
 │   └── results.json             Benchmark results & empirical comparison data
@@ -104,7 +114,7 @@ npm run selftest
 # 2. Compile Solidity smart contracts
 npm run compile
 
-# 3. Run unit test suite (55 tests, 100% coverage)
+# 3. Run unit test suite (119 tests, 100% coverage)
 npm test
 
 # 4. Run end-to-end simulation on Hardhat in-process blockchain
@@ -165,6 +175,30 @@ python3 baseline_benchmark.py
 ### Empirical Results:
 - **Tamper Detection**: Centralized databases fail to detect insider tampering (0% detection rate when an administrator updates the record). ChainCustody detects 100% of unauthorized modifications across all 3 defense layers.
 - **Verification Cost**: ChainCustody verifies evidence inclusion in $O(1)$ constant state lookups (or $O(\log N)$ for Merkle dossiers), eliminating linear table scans.
+
+---
+
+## Evaluation
+
+The `paper_eval/` directory contains evaluation and benchmarking scripts for empirical analysis:
+
+- **`paper_eval/gas_compare.js`**: Compares gas costs between storage-backed wrapped keys (`ChainCustody`) and event-log commitments (`ChainCustodyCommit`). Measures deployment, core operations, key-size sensitivity sweeps (32–512 bytes), and linear scaling.
+  - **Run**: `npx hardhat run paper_eval/gas_compare.js` (writes `paper_eval/gas_compare.json`)
+
+- **`paper_eval/gas_extended.js`**: Measures gas consumption for extended operations not covered in the primary benchmark: hardware metadata registration, two-step custody transfers, EIP-712 signed relaying, judicial sealing/unsealing, evidentiary holds, multi-party disposal, and 1,024-leaf Merkle batch verification.
+  - **Run**: `npx hardhat run paper_eval/gas_extended.js` (writes `paper_eval/gas_extended.json`)
+
+- **`paper_eval/checkpoint_gas.js`**: Measures deployment and steady-state gas usage of `CheckpointWitness.checkpoint` across 100 consecutive checkpoints on an anchor stream.
+  - **Run**: `npx hardhat run paper_eval/checkpoint_gas.js` (writes `paper_eval/checkpoint_gas.json`)
+
+- **`paper_eval/replay_scenarios.js`**: Replays tamper attack scenarios S1–S5 against an adversarial insider (admin, storage operator, and AES keyholder; S4/S5 includes chain history rewrite attacks via `evm_snapshot` / `evm_revert`), evaluating detection rates across all defense tiers.
+  - **Run**: `RUNS=1000 npx hardhat run paper_eval/replay_scenarios.js` (writes `paper_eval/replay_results.json`)
+
+- **`paper_eval/witness_replay.js`**: Evaluates cross-chain checkpoint witnessing (`CheckpointWitness`) against history-rewriting attacks across multiple checkpoint frequencies ($k$) and rewrite depths ($d$), comparing empirical detection with theoretical bounds.
+  - **Run**: Requires a second Hardhat node running on port 8546:
+    - Terminal 1: `npx hardhat node --port 8546`
+    - Terminal 2: `RUNS=250 WITNESS_RPC=http://127.0.0.1:8546 npx hardhat run paper_eval/witness_replay.js`
+  - **Output**: `paper_eval/witness_results.json`
 
 ---
 

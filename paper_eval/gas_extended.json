@@ -1,0 +1,112 @@
+{
+  "registerParty": {
+    "n": 4,
+    "mean": 46062,
+    "min": 46053,
+    "max": 46065
+  },
+  "registerEvidenceWithMetadata": {
+    "n": 30,
+    "mean": 539571,
+    "min": 539560,
+    "max": 539572
+  },
+  "proposeCustodyTransfer": {
+    "n": 30,
+    "mean": 262153,
+    "min": 262153,
+    "max": 262153
+  },
+  "acceptCustody": {
+    "n": 30,
+    "mean": 260950,
+    "min": 260950,
+    "max": 260950
+  },
+  "cancelCustodyTransfer": {
+    "n": 30,
+    "mean": 63292,
+    "min": 63292,
+    "max": 63292
+  },
+  "twoStepTotal": {
+    "mean": 523103
+  },
+  "transferCustodyWithSignature": {
+    "n": 30,
+    "mean": 302147,
+    "min": 302121,
+    "max": 302159
+  },
+  "sealEvidence": {
+    "n": 30,
+    "mean": 76445,
+    "min": 76445,
+    "max": 76445
+  },
+  "unsealEvidence": {
+    "n": 30,
+    "mean": 37802,
+    "min": 37802,
+    "max": 37802
+  },
+  "placeEvidentiaryHold": {
+    "n": 30,
+    "mean": 77828,
+    "min": 77828,
+    "max": 77828
+  },
+  "proposeDisposal": {
+    "n": 30,
+    "mean": 78957,
+    "min": 78957,
+    "max": 78957
+  },
+  "confirmDisposal": {
+    "n": 30,
+    "mean": 101014,
+    "min": 101014,
+    "max": 101014
+  },
+  "views": {
+    "verifyIntegrity_estimateGas": 26849,
+    "verifyBatchInclusion_1024leaves_estimateGas": 40126,
+    "merkleProofLength": 10,
+    "merkleProofValid": true
+  },
+  "wrappedKeySweep": [
+    {
+      "wrappedKeyBytes": 32,
+      "registerEvidence": 236220,
+      "grantAccess": 103658
+    },
+    {
+      "wrappedKeyBytes": 128,
+      "registerEvidence": 304305,
+      "grantAccess": 171761
+    },
+    {
+      "wrappedKeyBytes": 256,
+      "registerEvidence": 395080,
+      "grantAccess": 262565
+    },
+    {
+      "wrappedKeyBytes": 512,
+      "registerEvidence": 576643,
+      "grantAccess": 444173
+    }
+  ],
+  "env": {
+    "hardhat": "2.29.1",
+    "ethers": "6.17.0",
+    "node": "v22.23.4",
+    "solc": "0.8.24",
+    "optimizer": {
+      "enabled": true,
+      "runs": 200
+    },
+    "viaIR": true,
+    "evmVersion": "paris",
+    "hardfork": "osaka"
+  }
+}

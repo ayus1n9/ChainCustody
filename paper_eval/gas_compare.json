@@ -1,0 +1,299 @@
+{
+  "storage": {
+    "contract": "ChainCustody",
+    "deployment": 3017106,
+    "registerEvidence": {
+      "n": 30,
+      "mean": 395083,
+      "min": 395073,
+      "max": 395085
+    },
+    "grantAccess": {
+      "n": 30,
+      "mean": 262565,
+      "min": 262565,
+      "max": 262565
+    },
+    "logAccess": {
+      "n": 30,
+      "mean": 30036,
+      "min": 30036,
+      "max": 30036
+    },
+    "revokeAccess": {
+      "n": 30,
+      "mean": 67840,
+      "min": 67840,
+      "max": 67840
+    },
+    "transferCustody": {
+      "n": 30,
+      "mean": 265263,
+      "min": 265263,
+      "max": 265263
+    },
+    "proposeCustodyTransfer": {
+      "n": 30,
+      "mean": 262153,
+      "min": 262153,
+      "max": 262153
+    },
+    "acceptCustody": {
+      "n": 30,
+      "mean": 260950,
+      "min": 260950,
+      "max": 260950
+    },
+    "transferCustodyWithSignature": {
+      "n": 30,
+      "mean": 302143,
+      "min": 302121,
+      "max": 302159
+    },
+    "proposeDisposal": {
+      "n": 30,
+      "mean": 78717,
+      "min": 78717,
+      "max": 78717
+    },
+    "confirmDisposal": {
+      "n": 30,
+      "mean": 101014,
+      "min": 101014,
+      "max": 101014
+    },
+    "sweep": [
+      {
+        "bytes": 32,
+        "registerEvidence": 236220,
+        "grantAccess": 103658
+      },
+      {
+        "bytes": 64,
+        "registerEvidence": 258913,
+        "grantAccess": 126359
+      },
+      {
+        "bytes": 128,
+        "registerEvidence": 304305,
+        "grantAccess": 171761
+      },
+      {
+        "bytes": 256,
+        "registerEvidence": 395080,
+        "grantAccess": 262565
+      },
+      {
+        "bytes": 512,
+        "registerEvidence": 576643,
+        "grantAccess": 444173
+      }
+    ]
+  },
+  "commit": {
+    "contract": "ChainCustodyCommit",
+    "deployment": 2802985,
+    "registerEvidence": {
+      "n": 30,
+      "mean": 221937,
+      "min": 221927,
+      "max": 221939
+    },
+    "grantAccess": {
+      "n": 30,
+      "mean": 89379,
+      "min": 89379,
+      "max": 89379
+    },
+    "logAccess": {
+      "n": 30,
+      "mean": 30080,
+      "min": 30080,
+      "max": 30080
+    },
+    "revokeAccess": {
+      "n": 30,
+      "mean": 35348,
+      "min": 35348,
+      "max": 35348
+    },
+    "transferCustody": {
+      "n": 30,
+      "mean": 92029,
+      "min": 92029,
+      "max": 92029
+    },
+    "proposeCustodyTransfer": {
+      "n": 30,
+      "mean": 89002,
+      "min": 89002,
+      "max": 89002
+    },
+    "acceptCustody": {
+      "n": 30,
+      "mean": 80484,
+      "min": 80484,
+      "max": 80484
+    },
+    "transferCustodyWithSignature": {
+      "n": 30,
+      "mean": 128858,
+      "min": 128839,
+      "max": 128877
+    },
+    "proposeDisposal": {
+      "n": 30,
+      "mean": 78717,
+      "min": 78717,
+      "max": 78717
+    },
+    "confirmDisposal": {
+      "n": 30,
+      "mean": 68539,
+      "min": 68539,
+      "max": 68539
+    },
+    "sweep": [
+      {
+        "bytes": 32,
+        "registerEvidence": 216442,
+        "grantAccess": 83876
+      },
+      {
+        "bytes": 64,
+        "registerEvidence": 217223,
+        "grantAccess": 84662
+      },
+      {
+        "bytes": 128,
+        "registerEvidence": 218795,
+        "grantAccess": 86234
+      },
+      {
+        "bytes": 256,
+        "registerEvidence": 221934,
+        "grantAccess": 89379
+      },
+      {
+        "bytes": 512,
+        "registerEvidence": 228228,
+        "grantAccess": 95669
+      }
+    ]
+  },
+  "comparison": [
+    {
+      "op": "deployment",
+      "storage": 3017106,
+      "commit": 2802985,
+      "saving": 214121,
+      "savingPct": 7.1
+    },
+    {
+      "op": "registerEvidence",
+      "storage": 395083,
+      "commit": 221937,
+      "saving": 173146,
+      "savingPct": 43.8
+    },
+    {
+      "op": "grantAccess",
+      "storage": 262565,
+      "commit": 89379,
+      "saving": 173186,
+      "savingPct": 66
+    },
+    {
+      "op": "logAccess",
+      "storage": 30036,
+      "commit": 30080,
+      "saving": -44,
+      "savingPct": -0.1
+    },
+    {
+      "op": "revokeAccess",
+      "storage": 67840,
+      "commit": 35348,
+      "saving": 32492,
+      "savingPct": 47.9
+    },
+    {
+      "op": "transferCustody",
+      "storage": 265263,
+      "commit": 92029,
+      "saving": 173234,
+      "savingPct": 65.3
+    },
+    {
+      "op": "proposeCustodyTransfer",
+      "storage": 262153,
+      "commit": 89002,
+      "saving": 173151,
+      "savingPct": 66
+    },
+    {
+      "op": "acceptCustody",
+      "storage": 260950,
+      "commit": 80484,
+      "saving": 180466,
+      "savingPct": 69.2
+    },
+    {
+      "op": "transferCustodyWithSignature",
+      "storage": 302143,
+      "commit": 128858,
+      "saving": 173285,
+      "savingPct": 57.4
+    },
+    {
+      "op": "proposeDisposal",
+      "storage": 78717,
+      "commit": 78717,
+      "saving": 0,
+      "savingPct": 0
+    },
+    {
+      "op": "confirmDisposal",
+      "storage": 101014,
+      "commit": 68539,
+      "saving": 32475,
+      "savingPct": 32.1
+    }
+  ],
+  "linearFit": {
+    "storage": {
+      "registerEvidence": {
+        "alpha": 213524,
+        "beta": 709.21,
+        "r2": 1
+      },
+      "grantAccess": {
+        "alpha": 80957,
+        "beta": 709.41,
+        "r2": 1
+      }
+    },
+    "commit": {
+      "registerEvidence": {
+        "alpha": 215652,
+        "beta": 24.56,
+        "r2": 1
+      },
+      "grantAccess": {
+        "alpha": 83090,
+        "beta": 24.57,
+        "r2": 1
+      }
+    }
+  },
+  "monthlyWorkloadGas": {
+    "storage": 1339540000,
+    "commit": 630718000,
+    "savingPct": 52.9
+  },
+  "env": {
+    "hardhat": "2.29.1",
+    "ethers": "6.17.0",
+    "node": "v22.23.4"
+  }
+}
