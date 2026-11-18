@@ -239,4 +239,10 @@ describe("SIWE Authentication & Server Hardening", function () {
     expect(res.headers["content-security-policy"]).to.include("default-src 'self'");
     expect(res.headers["content-security-policy"]).to.include("frame-ancestors 'none'");
   });
+
+  it("Serves local ethers.umd.min.js bundle without CDN dependencies", async function () {
+    const res = await makeRequest("GET", "/js/ethers.umd.min.js");
+    expect(res.statusCode).to.equal(200);
+    expect(res.headers["content-type"]).to.include("javascript");
+  });
 });
