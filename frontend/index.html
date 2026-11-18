@@ -8,10 +8,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <!-- Ethers.js v6 UMD -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.2/ethers.umd.min.js"></script>
+  <!-- Ethers.js v6 UMD (Served locally from node_modules for CSP compliance) -->
+  <script src="/js/ethers.umd.min.js"></script>
 </head>
 <body>
+  <!-- Simulation Mode Banner -->
+  <div id="simBanner" class="simulation-banner" style="display: none;">
+    ⚠️ SIMULATION – no real evidence. Running in local demonstration sandbox.
+  </div>
+
   <!-- Header / Navigation -->
   <header class="app-header">
     <div class="header-brand">
@@ -23,8 +28,8 @@
     </div>
 
     <div class="header-controls">
-      <!-- Persona Switcher -->
-      <div class="persona-selector">
+      <!-- Persona Switcher (Only visible in Demo Mode) -->
+      <div class="persona-selector" id="personaSelectorContainer" style="display: none;">
         <label for="personaSelect">Active Role:</label>
         <select id="personaSelect">
           <option value="investigator">👮 Investigator (Police)</option>
@@ -38,12 +43,23 @@
       <!-- Mode Badge -->
       <div class="mode-badge" id="modeBadge">
         <span class="pulse-dot"></span>
-        <span id="modeText">Demo Simulator</span>
+        <span id="modeText">Connecting...</span>
       </div>
 
-      <button id="connectWalletBtn" class="btn btn-secondary">Connect Wallet</button>
+      <!-- Witness Verification Header Badge -->
+      <div id="witnessHeaderBadge" class="witness-badge verified" style="display: none;">
+        <span>🛡️ Witness: Verified</span>
+      </div>
+
+      <button id="connectWalletBtn" class="btn btn-secondary">Connect Wallet & Sign In</button>
+      <button id="logoutBtn" class="btn btn-outline" style="display: none;">Sign Out</button>
     </div>
   </header>
+
+  <!-- Unregistered Notice Banner -->
+  <div id="notRegisteredBanner" class="not-registered-banner" style="display: none;">
+    ⚠️ Wallet connected, but this address is not registered on the ChainCustody smart contract. You have read-only access to verify evidence.
+  </div>
 
   <!-- Notification Bar -->
   <div id="toast" class="toast"></div>
@@ -81,11 +97,12 @@
 
     <!-- Navigation Tabs -->
     <nav class="tabs-nav">
-      <button class="tab-btn active" data-tab="verify">🔍 Verify Integrity</button>
-      <button class="tab-btn" data-tab="register">📤 Register Evidence</button>
-      <button class="tab-btn" data-tab="custody">🔄 Custody & Access</button>
-      <button class="tab-btn" data-tab="timeline">📜 Audit Trail</button>
-      <button class="tab-btn" data-tab="tamper">🧪 Tamper Sandbox</button>
+      <button class="tab-btn active" data-tab="verify" id="tabBtnVerify">🔍 Verify Integrity</button>
+      <button class="tab-btn" data-tab="register" id="tabBtnRegister">📤 Register Evidence</button>
+      <button class="tab-btn" data-tab="custody" id="tabBtnCustody">🔄 Custody & Access</button>
+      <button class="tab-btn" data-tab="timeline" id="tabBtnTimeline">📜 Audit Trail</button>
+      <button class="tab-btn" data-tab="tamper" id="tabBtnTamper" style="display: none;">🧪 Tamper Sandbox</button>
+      <button class="tab-btn" data-tab="council" id="tabBtnCouncil" style="display: none;">🏛️ Role Council</button>
     </nav>
 
     <!-- TAB 1: Verify Integrity -->
@@ -232,7 +249,7 @@
 
       <div class="two-column-layout">
         <!-- Custody Transfer -->
-        <div class="card">
+        <div class="card" id="cardCustodyTransfer">
           <div class="card-badge">Current Custodian Only</div>
           <h3>🔄 Transfer Custody (The Chain)</h3>
           <p class="card-desc">Transfer legal and physical custody of Evidence #1 to another registered party.</p>
@@ -253,7 +270,7 @@
         </div>
 
         <!-- Access Control -->
-        <div class="card">
+        <div class="card" id="cardAccessControl">
           <div class="card-badge">Role-Based Access</div>
           <h3>🔑 Manage Access Grants</h3>
           <p class="card-desc">Grant or revoke permission to inspect the encrypted evidence.</p>
@@ -280,7 +297,7 @@
         </div>
 
         <!-- Judicial Sealing Card -->
-        <div class="card" style="grid-column: 1 / -1; margin-top: 1rem; border-left: 4px solid var(--warning);">
+        <div class="card" id="cardJudicialSealing" style="grid-column: 1 / -1; margin-top: 1rem; border-left: 4px solid var(--warning);">
           <div class="card-badge" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b;">Court Order Only</div>
           <h3>⚖️ Judicial Sealing & Impoundment Protocol</h3>
           <p class="card-desc">Pursuant to FRE 902 / procedural rules, the presiding Court Magistrate can freeze all custody handovers and access permissions.</p>
@@ -302,7 +319,7 @@
         </div>
 
         <!-- Multi-Party Disposal & Key Shredding Card -->
-        <div class="card" style="grid-column: 1 / -1; margin-top: 1rem; border-left: 4px solid var(--danger);">
+        <div class="card" id="cardDisposal" style="grid-column: 1 / -1; margin-top: 1rem; border-left: 4px solid var(--danger);">
           <div class="card-badge" style="background: rgba(239, 68, 68, 0.2); color: #ef4444;">Dual Authorization Protocol</div>
           <h3>🔥 Multi-Party Expungement & Cryptographic Shredding</h3>
           <p class="card-desc">Prevents unilateral evidence spoliation. Requires Court judicial decree + Active Custodian concurrence to permanently shred AES keys and clear off-chain storage pointers.</p>
@@ -325,7 +342,7 @@
         </div>
 
         <!-- Evidentiary Hold & Statutory Retention Lock Card -->
-        <div class="card" style="grid-column: 1 / -1; margin-top: 1rem; border-left: 4px solid var(--primary);">
+        <div class="card" id="cardEvidentiaryHold" style="grid-column: 1 / -1; margin-top: 1rem; border-left: 4px solid var(--primary);">
           <div class="card-badge" style="background: rgba(14, 165, 233, 0.2); color: #0ea5e9;">Statutory Retention Lock</div>
           <h3>⏳ Time-Locked Evidentiary Hold Protocol</h3>
           <p class="card-desc">Lock evidence under litigation hold (FRCP 37(e)) or statutory retention mandates. Blocks all disposal and destruction until the timestamp expires or Court dismisses the hold.</p>
@@ -415,6 +432,73 @@
           <div class="tamper-result" id="res6c">Status: Ready to test</div>
           <button class="btn btn-outline-danger btn-sm" id="btnSim6c">Simulate Insider Forgery</button>
           <div class="defense-badge highlight-blockchain">Caught by: Blockchain Anchored SHA-256 Hash</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 6: Role Council (M-of-N Multi-Sig Admin) -->
+    <section id="tab-council" class="tab-content">
+      <div class="panel-header">
+        <div>
+          <h2>Two-Person Role Council (M-of-N Multi-Sig)</h2>
+          <p class="panel-desc">Administrative actions (role assignment and revocation) require M-of-N council approvals. Proposals expire after 7 days.</p>
+        </div>
+      </div>
+
+      <div class="two-column-layout">
+        <!-- New Proposal Card -->
+        <div class="card">
+          <div class="card-badge">Council Proposer</div>
+          <h3>📝 Propose Role Action</h3>
+          <p class="card-desc">Create a proposal to register or deregister a party. Your approval is recorded automatically.</p>
+
+          <div class="form-group">
+            <label for="councilActionSelect">Action Type:</label>
+            <select id="councilActionSelect" class="input-field">
+              <option value="register">Register Party (Assign Role)</option>
+              <option value="deregister">Deregister Party (Revoke All Roles)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="councilPartyAddress">Target Party Address:</label>
+            <input type="text" id="councilPartyAddress" class="input-field" placeholder="0x...">
+          </div>
+
+          <div class="form-group" id="councilRoleSelectGroup">
+            <label for="councilRoleSelect">Assigned Role:</label>
+            <select id="councilRoleSelect" class="input-field">
+              <option value="1">Investigator (Police)</option>
+              <option value="2">Forensic Lab</option>
+              <option value="3">Court (Judge)</option>
+              <option value="4">Defense Counsel</option>
+            </select>
+          </div>
+
+          <button id="btnSubmitCouncilProposal" class="btn btn-primary">Submit Proposal</button>
+        </div>
+
+        <!-- Council Status & Threshold Card -->
+        <div class="card">
+          <div class="card-badge">Council Parameters</div>
+          <h3>🏛️ Active Council Policy</h3>
+          <p class="card-desc">Prevents unilateral privilege escalation ("admin grants itself Investigator").</p>
+
+          <div class="file-details" style="margin-top: 1rem;">
+            <div class="detail-row"><span>Required Approvals (M):</span> <strong id="councilThresholdDisplay">2</strong></div>
+            <div class="detail-row"><span>Total Members (N):</span> <strong id="councilMemberCountDisplay">3</strong></div>
+            <div class="detail-row"><span>Proposal Lifetime:</span> <span>7 Days</span></div>
+            <div class="detail-row"><span>Council Contract:</span> <code id="councilContractDisplay" class="hash-code">-</code></div>
+          </div>
+        </div>
+
+        <!-- Proposals List Card -->
+        <div class="card" style="grid-column: 1 / -1; margin-top: 1rem;">
+          <div class="card-badge">Pending & Recent</div>
+          <h3>📜 Council Proposals</h3>
+          <div id="councilProposalsList" class="permission-list" style="margin-top: 1rem;">
+            <p style="color: var(--text-dim);">No active proposals.</p>
+          </div>
         </div>
       </div>
     </section>

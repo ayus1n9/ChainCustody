@@ -53,10 +53,82 @@ Acquisition Hash: [MODIFIED BY ATTACKER]
 Status: EVIDENCE PURGED
 Date: 2026-09-30`;
 
-// ---------------------------------------------------------------- State
+// ---------------------------------------------------------------- State & Auth
+let isDemoMode = false;
+let connectedAccount = null;
+let userRole = 0; // 0: None, 1: Investigator, 2: Lab, 3: Court, 4: Defense
+const ROLE_NAMES = ["None", "Investigator", "Lab", "Court", "Defense"];
+let appConfig = { demoMode: false, rpcUrl: "http://127.0.0.1:8545", contractAddress: null };
+
 let currentPersonaKey = "investigator";
 let currentEvidenceId = 1;
 let currentBlock = 18;
+
+// ---------------------------------------------------------------- Error Decoder
+const CUSTOM_ERROR_SIGNATURES = [
+  "NotAdmin()",
+  "NotAuthorized()",
+  "EvidenceNotFound()",
+  "NotCustodian()",
+  "AlreadyRegistered()",
+  "PartyNotRegistered()",
+  "AccessDenied()",
+  "InvalidInput()",
+  "NothingToRevoke()",
+  "CannotRevokeCustodian()",
+  "NoTransferPending()",
+  "NotProposedCustodian()",
+  "EvidenceIsSealed()",
+  "EvidenceNotSealed()",
+  "EvidenceIsDisposed()",
+  "DisposalNotProposed()",
+  "AlreadyProposed()",
+  "EvidentiaryHoldActive(uint64)",
+  "InvalidHoldDuration()",
+  "SignatureExpired()",
+  "InvalidSignature()",
+  "NotCouncilMember()",
+  "InvalidThreshold()",
+  "InvalidMember()",
+  "DuplicateMember()",
+  "ProposalNotFound()",
+  "ProposalAlreadyExecuted()",
+  "ProposalHasExpired()",
+  "AlreadyApproved()",
+  "ProposalNotApproved()",
+  "InvalidRole()"
+];
+
+function decodeCustomError(err) {
+  if (!err) return "Unknown error";
+  let data = err.data || err.info?.error?.data || err.error?.data;
+  if (typeof data === "object" && data !== null) {
+    data = data.data || data;
+  }
+  if (typeof data === "string" && data.startsWith("0x") && data.length >= 10) {
+    const sel = data.slice(0, 10).toLowerCase();
+    for (const sig of CUSTOM_ERROR_SIGNATURES) {
+      if (ethers.id(sig).slice(0, 10).toLowerCase() === sel) {
+        if (sig.includes("uint64")) {
+          try {
+            const abiCoder = ethers.AbiCoder.defaultAbiCoder();
+            const decoded = abiCoder.decode(["uint64"], "0x" + data.slice(10));
+            const dateStr = new Date(Number(decoded[0]) * 1000).toLocaleString();
+            return `EvidentiaryHoldActive(lockedUntil: ${dateStr})`;
+          } catch (e) {}
+        }
+        return sig;
+      }
+    }
+  }
+  for (const sig of CUSTOM_ERROR_SIGNATURES) {
+    const baseName = sig.split("(")[0];
+    if (err.message && err.message.includes(baseName)) {
+      return sig;
+    }
+  }
+  return err.reason || err.shortMessage || err.message || "Execution reverted";
+}
 
 const state = {
   evidence: {
@@ -143,10 +215,123 @@ function toast(msg, type = "info") {
   setTimeout(() => { el.className = "toast"; }, 4000);
 }
 
+function switchTab(target) {
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.tab === target);
+  });
+  document.querySelectorAll(".tab-content").forEach(content => {
+    content.classList.toggle("active", content.id === `tab-${target}`);
+  });
+}
+
+function canAccessTab(targetTab, role) {
+  if (isDemoMode) return true;
+  if (!connectedAccount || role === 0) {
+    return targetTab === "verify" || targetTab === "timeline";
+  }
+  if (role === 1) { // Investigator
+    return ["verify", "register", "custody", "timeline"].includes(targetTab);
+  }
+  if (role === 2) { // Lab
+    return ["verify", "custody", "timeline"].includes(targetTab);
+  }
+  if (role === 3) { // Court
+    return ["verify", "custody", "timeline"].includes(targetTab);
+  }
+  if (role === 4) { // Defense
+    return ["verify", "timeline"].includes(targetTab);
+  }
+  return targetTab === "verify";
+}
+
+function applyRolePermissions(role, address) {
+  const notRegBanner = document.getElementById("notRegisteredBanner");
+  const tabBtnVerify = document.getElementById("tabBtnVerify");
+  const tabBtnRegister = document.getElementById("tabBtnRegister");
+  const tabBtnCustody = document.getElementById("tabBtnCustody");
+  const tabBtnTimeline = document.getElementById("tabBtnTimeline");
+  const tabBtnCouncil = document.getElementById("tabBtnCouncil");
+
+  const cardCustodyTransfer = document.getElementById("cardCustodyTransfer");
+  const cardAccessControl = document.getElementById("cardAccessControl");
+  const cardJudicialSealing = document.getElementById("cardJudicialSealing");
+  const cardDisposal = document.getElementById("cardDisposal");
+  const cardEvidentiaryHold = document.getElementById("cardEvidentiaryHold");
+
+  if (isDemoMode) {
+    if (notRegBanner) notRegBanner.style.display = "none";
+    if (tabBtnRegister) tabBtnRegister.style.display = "inline-flex";
+    if (tabBtnCustody) tabBtnCustody.style.display = "inline-flex";
+    if (tabBtnTimeline) tabBtnTimeline.style.display = "inline-flex";
+    if (cardCustodyTransfer) cardCustodyTransfer.style.display = "block";
+    if (cardAccessControl) cardAccessControl.style.display = "block";
+    if (cardJudicialSealing) cardJudicialSealing.style.display = "block";
+    if (cardDisposal) cardDisposal.style.display = "block";
+    if (cardEvidentiaryHold) cardEvidentiaryHold.style.display = "block";
+    return;
+  }
+
+  // Deny by default: unregistered wallet sees read-only verify page and "not registered" notice
+  if (!address || role === 0) {
+    if (notRegBanner) notRegBanner.style.display = address ? "flex" : "none";
+    if (tabBtnRegister) tabBtnRegister.style.display = "none";
+    if (tabBtnCustody) tabBtnCustody.style.display = "none";
+    if (tabBtnTimeline) tabBtnTimeline.style.display = address ? "inline-flex" : "none";
+    if (tabBtnCouncil) tabBtnCouncil.style.display = "none";
+    switchTab("verify");
+    return;
+  }
+
+  if (notRegBanner) notRegBanner.style.display = "none";
+  if (tabBtnVerify) tabBtnVerify.style.display = "inline-flex";
+  if (tabBtnTimeline) tabBtnTimeline.style.display = "inline-flex";
+
+  if (role === 1) { // Investigator: register, grant, revoke, transfer, verify
+    if (tabBtnRegister) tabBtnRegister.style.display = "inline-flex";
+    if (tabBtnCustody) tabBtnCustody.style.display = "inline-flex";
+    if (cardCustodyTransfer) cardCustodyTransfer.style.display = "block";
+    if (cardAccessControl) cardAccessControl.style.display = "block";
+    if (cardJudicialSealing) cardJudicialSealing.style.display = "none";
+    if (cardDisposal) cardDisposal.style.display = "none";
+    if (cardEvidentiaryHold) cardEvidentiaryHold.style.display = "none";
+  } else if (role === 2) { // Lab: log access, verify, accept custody
+    if (tabBtnRegister) tabBtnRegister.style.display = "none";
+    if (tabBtnCustody) tabBtnCustody.style.display = "inline-flex";
+    if (cardCustodyTransfer) cardCustodyTransfer.style.display = "block";
+    if (cardAccessControl) cardAccessControl.style.display = "none";
+    if (cardJudicialSealing) cardJudicialSealing.style.display = "none";
+    if (cardDisposal) cardDisposal.style.display = "none";
+    if (cardEvidentiaryHold) cardEvidentiaryHold.style.display = "none";
+  } else if (role === 3) { // Court: seal, unseal, hold, propose disposal
+    if (tabBtnRegister) tabBtnRegister.style.display = "none";
+    if (tabBtnCustody) tabBtnCustody.style.display = "inline-flex";
+    if (cardCustodyTransfer) cardCustodyTransfer.style.display = "none";
+    if (cardAccessControl) cardAccessControl.style.display = "none";
+    if (cardJudicialSealing) cardJudicialSealing.style.display = "block";
+    if (cardDisposal) cardDisposal.style.display = "block";
+    if (cardEvidentiaryHold) cardEvidentiaryHold.style.display = "block";
+  } else if (role === 4) { // Defense: read audit trail, verify
+    if (tabBtnRegister) tabBtnRegister.style.display = "none";
+    if (tabBtnCustody) tabBtnCustody.style.display = "none";
+    switchTab("verify");
+  }
+}
+
 function updatePersonaDisplay() {
-  const p = PERSONAS[currentPersonaKey];
-  document.getElementById("activeRoleDisplay").textContent = p.role;
-  document.getElementById("activeAddressDisplay").textContent = short(p.address);
+  if (isDemoMode) {
+    const p = PERSONAS[currentPersonaKey];
+    document.getElementById("activeRoleDisplay").textContent = p.role;
+    document.getElementById("activeAddressDisplay").textContent = short(p.address);
+  } else {
+    if (connectedAccount) {
+      const roleName = ROLE_NAMES[userRole] || "Unregistered";
+      document.getElementById("activeRoleDisplay").textContent = roleName === "None" ? "Unregistered" : roleName;
+      document.getElementById("activeAddressDisplay").textContent = short(connectedAccount);
+    } else {
+      document.getElementById("activeRoleDisplay").textContent = "Not Signed In";
+      document.getElementById("activeAddressDisplay").textContent = "Connect wallet & sign in";
+    }
+  }
 
   // Update permissions display, seal banner, disposal, and hold controls
   renderAccessMatrix();
@@ -155,6 +340,12 @@ function updatePersonaDisplay() {
   updateSealControls();
   updateDisposalControls();
   updateHoldControls();
+  applyRolePermissions(
+    isDemoMode
+      ? (currentPersonaKey === "investigator" ? 1 : currentPersonaKey === "lab" ? 2 : currentPersonaKey === "court" ? 3 : currentPersonaKey === "defense" ? 4 : 0)
+      : userRole,
+    isDemoMode ? PERSONAS[currentPersonaKey].address : connectedAccount
+  );
 }
 
 function updateHoldControls() {
@@ -414,12 +605,12 @@ document.addEventListener("DOMContentLoaded", () => {
   // Tabs Navigation
   document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.addEventListener("click", () => {
-      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-      document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
-
-      btn.classList.add("active");
       const target = btn.dataset.tab;
-      document.getElementById(`tab-${target}`).classList.add("active");
+      if (!isDemoMode && !canAccessTab(target, userRole)) {
+        toast("Access Denied: Your registered role does not have permission for this section.", "error");
+        return;
+      }
+      switchTab(target);
     });
   });
 
@@ -1036,23 +1227,141 @@ document.addEventListener("DOMContentLoaded", () => {
     toast("Layer 3 defense: Blockchain on-chain hash caught insider forgery!", "error");
   });
 
-  // Wallet Connection
-  document.getElementById("connectWalletBtn").addEventListener("click", async () => {
-    if (typeof window.ethereum !== "undefined") {
-      try {
-        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const network = await provider.getNetwork();
-        document.getElementById("modeText").textContent = `Web3 (${network.name || 'chainId: ' + network.chainId})`;
-        document.getElementById("activeAddressDisplay").textContent = short(accounts[0]);
-        toast(`Connected to MetaMask: ${short(accounts[0])}`, "success");
-      } catch (err) {
-        toast("MetaMask connection rejected.", "error");
-      }
-    } else {
-      toast("MetaMask not detected. Running in Demo Simulator mode.", "info");
+  // ---------------------------------------------------------------- Auth & Wallet Handlers
+  async function loginWithSiwe() {
+    if (typeof window.ethereum === "undefined") {
+      toast("MetaMask / Web3 wallet not detected. Please install a Web3 wallet.", "error");
+      return;
     }
-  });
+
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const accounts = await provider.send("eth_requestAccounts", []);
+      if (!accounts || accounts.length === 0) {
+        toast("No accounts selected in wallet.", "error");
+        return;
+      }
+      const account = accounts[0];
+      const network = await provider.getNetwork();
+      const chainId = Number(network.chainId);
+
+      // 1. Fetch random nonce from server
+      const nonceRes = await fetch("/auth/nonce");
+      if (!nonceRes.ok) {
+        const errData = await nonceRes.json().catch(() => ({}));
+        throw new Error(errData.error || `Nonce request failed (${nonceRes.status})`);
+      }
+      const { nonce } = await nonceRes.json();
+
+      // 2. Format EIP-4361 SIWE message
+      const domain = window.location.host;
+      const origin = window.location.origin;
+      const issuedAt = new Date().toISOString();
+      const message = `${domain} wants you to sign in with your Ethereum account:\n${account}\n\nSign in to ChainCustody.\n\nURI: ${origin}\nVersion: 1\nChain ID: ${chainId}\nNonce: ${nonce}\nIssued At: ${issuedAt}`;
+
+      // 3. Request personal sign from signer
+      const signer = await provider.getSigner();
+      const signature = await signer.signMessage(message);
+
+      // 4. Verify signature on server
+      const verifyRes = await fetch("/auth/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, signature })
+      });
+      const verifyData = await verifyRes.json();
+      if (!verifyRes.ok || !verifyData.ok) {
+        throw new Error(verifyData.error || "SIWE verification failed");
+      }
+
+      connectedAccount = verifyData.address;
+      userRole = verifyData.role;
+
+      // 5. Update header & controls
+      document.getElementById("connectWalletBtn").style.display = "none";
+      document.getElementById("logoutBtn").style.display = "inline-flex";
+      document.getElementById("modeText").textContent = `SIWE (${network.name || "chainId: " + chainId})`;
+      updatePersonaDisplay();
+      toast(`Signed in as ${verifyData.roleName || ROLE_NAMES[userRole]} (${short(connectedAccount)})`, "success");
+    } catch (err) {
+      console.error("SIWE error:", err);
+      toast(decodeCustomError(err), "error");
+    }
+  }
+
+  async function logoutSiwe() {
+    try {
+      await fetch("/auth/logout", { method: "POST" });
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
+    connectedAccount = null;
+    userRole = 0;
+    document.getElementById("connectWalletBtn").style.display = "inline-flex";
+    document.getElementById("logoutBtn").style.display = "none";
+    document.getElementById("modeText").textContent = "Disconnected";
+    updatePersonaDisplay();
+    toast("Signed out successfully.", "info");
+  }
+
+  document.getElementById("connectWalletBtn").addEventListener("click", loginWithSiwe);
+  document.getElementById("logoutBtn").addEventListener("click", logoutSiwe);
+
+  if (typeof window.ethereum !== "undefined") {
+    window.ethereum.on("accountsChanged", (accounts) => {
+      if (!isDemoMode && connectedAccount) {
+        if (!accounts || accounts.length === 0 || accounts[0].toLowerCase() !== connectedAccount.toLowerCase()) {
+          logoutSiwe();
+        }
+      }
+    });
+  }
+
+  async function initApp() {
+    try {
+      const cfgRes = await fetch("/api/config");
+      if (cfgRes.ok) {
+        appConfig = await cfgRes.json();
+        isDemoMode = Boolean(appConfig.demoMode);
+      }
+    } catch (e) {
+      console.warn("Using default config (demoMode=false)");
+    }
+
+    const simBanner = document.getElementById("simBanner");
+    const personaContainer = document.getElementById("personaSelectorContainer");
+    const tabTamper = document.getElementById("tabBtnTamper");
+
+    if (isDemoMode) {
+      if (simBanner) simBanner.style.display = "flex";
+      if (personaContainer) personaContainer.style.display = "flex";
+      if (tabTamper) tabTamper.style.display = "inline-flex";
+      document.getElementById("modeText").textContent = "Demo Simulator (127.0.0.1)";
+    } else {
+      if (simBanner) simBanner.style.display = "none";
+      if (personaContainer) personaContainer.style.display = "none";
+      if (tabTamper) tabTamper.style.display = "none";
+      document.getElementById("modeText").textContent = "Sign-In Required";
+
+      // Check active session
+      try {
+        const sRes = await fetch("/auth/session");
+        if (sRes.ok) {
+          const sData = await sRes.json();
+          if (sData.authenticated) {
+            connectedAccount = sData.address;
+            userRole = sData.role;
+            document.getElementById("connectWalletBtn").style.display = "none";
+            document.getElementById("logoutBtn").style.display = "inline-flex";
+            document.getElementById("modeText").textContent = "SIWE Verified";
+            toast(`Session active: ${sData.roleName || ROLE_NAMES[userRole]} (${short(connectedAccount)})`, "success");
+          }
+        }
+      } catch (e) {}
+    }
+
+    updatePersonaDisplay();
+  }
 
   // Export Court Certificate
   document.getElementById("exportCertBtn").addEventListener("click", () => {
@@ -1072,7 +1381,7 @@ document.addEventListener("DOMContentLoaded", () => {
     cert += `- Initial Seizure Block: #${ev.createdAtBlock}\n\n`;
     cert += `### 2. CONTINUOUS ON-CHAIN AUDIT TRAIL\n\n`;
     cert += `| Block | Event | Initiated By | Details | Timestamp |\n`;
-    cert += `| :---: | :--- | :--- | :--- | :--- |\n`;
+    cert += `| :---: | :--- | :--- | :--- |\n`;
 
     state.auditTrail.forEach(l => {
       const actor = PERSONAS[l.by] ? PERSONAS[l.by].role : l.by;
@@ -1093,6 +1402,6 @@ document.addEventListener("DOMContentLoaded", () => {
     toast(`Downloaded Certificate of Authenticity for Evidence #${ev.id}`, "success");
   });
 
-  // Initialize display
-  updatePersonaDisplay();
+  // Initialize display and app
+  initApp();
 });

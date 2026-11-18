@@ -838,3 +838,54 @@ body {
 }
 
 
+
+/* Hardening & Security Banners */
+.simulation-banner {
+  background: #f59e0b;
+  color: #000000;
+  font-weight: 800;
+  text-align: center;
+  padding: 0.6rem 1rem;
+  letter-spacing: 0.08em;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.3);
+}
+
+.not-registered-banner {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+  padding: 0.85rem 1.5rem;
+  margin: 1.5rem 2.5rem 0 2.5rem;
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 500;
+}
+
+.witness-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  margin-top: 0.4rem;
+}
+
+.witness-badge.verified {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success);
+  border: 1px solid var(--success);
+}
+
+.witness-badge.warning {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
