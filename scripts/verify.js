@@ -8,6 +8,7 @@ const { ethers } = hre;
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const witness = require("./witness");
 
 // ANSI color helpers
 const B = "\x1b[1m", R = "\x1b[0m", G = "\x1b[32m", RD = "\x1b[31m", CY = "\x1b[36m", Y = "\x1b[33m", D = "\x1b[2m";
@@ -103,6 +104,23 @@ async function main() {
       console.log(`  Acquisition Tool  : ${meta.acquisitionTool}`);
       console.log(`  Seizing Officer   : ${meta.officerBadge} [Jurisdiction: ${meta.jurisdiction}]`);
     }
+
+    // Checkpoint Witness Verification
+    try {
+      const witnessStatus = await witness.verifyWitnessStatus(ethers.provider);
+      if (witnessStatus.available) {
+        if (witnessStatus.verified) {
+          console.log(`  Witness Checkpoint: ${B}${G}🛡️ Witness: ${witnessStatus.statusText}${R}`);
+        } else {
+          console.log(`  Witness Checkpoint: ${B}${Y}⚠️ Witness: ${witnessStatus.statusText}${R}`);
+        }
+      } else {
+        console.log(`  Witness Checkpoint: ${D}⚠️ Witness: Unverified (CheckpointWitness not deployed)${R}`);
+      }
+    } catch (e) {
+      console.log(`  Witness Checkpoint: ${D}⚠️ Witness: Unverified (${e.message})${R}`);
+    }
+
     console.log(`${B}----------------------------------------------------------------------${R}`);
 
     if (isValid) {

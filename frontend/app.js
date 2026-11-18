@@ -1581,6 +1581,33 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     updatePersonaDisplay();
+    updateWitnessBadge();
+  }
+
+  async function updateWitnessBadge() {
+    const badge = document.getElementById("witnessHeaderBadge");
+    if (!badge) return;
+    try {
+      const res = await fetch("/api/witness/status");
+      if (res.ok) {
+        const data = await res.json();
+        badge.style.display = "inline-flex";
+        if (data.verified) {
+          badge.className = "witness-badge verified";
+          badge.innerHTML = `<span>🛡️ Witness: Verified (block #${data.latestHeight})</span>`;
+        } else {
+          badge.className = "witness-badge warning";
+          badge.innerHTML = `<span>⚠️ Witness: Unverified</span>`;
+        }
+        return;
+      }
+    } catch (e) {}
+
+    if (isDemoMode) {
+      badge.style.display = "inline-flex";
+      badge.className = "witness-badge verified";
+      badge.innerHTML = `<span>🛡️ Witness: Verified (block #16)</span>`;
+    }
   }
 
   // Export Court Certificate

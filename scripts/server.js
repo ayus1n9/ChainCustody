@@ -4,6 +4,7 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const auth = require("./auth");
+const witness = require("./witness");
 
 const PORT = parseInt(process.env.PORT || "3000", 10);
 const HOST = process.env.HOST || "127.0.0.1";
@@ -194,6 +195,24 @@ function createServer(options = {}) {
         rpcUrl,
         contractAddress: contractAddress || null
       });
+    }
+
+    // ------------------------------------------------------------- Witness Status API
+    if (req.method === "GET" && rawUrl === "/api/witness/status") {
+      try {
+        const custodyProvider = provider || new (require("ethers").JsonRpcProvider)(rpcUrl);
+        const witnessStatus = await witness.verifyWitnessStatus(custodyProvider, options.witnessContract || null, {
+          chainTag: options.chainTag || witness.CHAIN_TAG,
+          k: options.witnessK || witness.WITNESS_K
+        });
+        return sendJson(res, 200, witnessStatus);
+      } catch (err) {
+        return sendJson(res, 200, {
+          available: false,
+          verified: false,
+          statusText: "Witness: Unverified"
+        });
+      }
     }
 
     // ------------------------------------------------------------- Serve Local Ethers
