@@ -192,8 +192,39 @@ const state = {
       detail: "Lab accessed and verified evidence integrity",
       time: "2026-09-30 16:05:53"
     }
-  ]
+  ],
+  council: {
+    threshold: 2,
+    members: [
+      "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", // Investigator
+      "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC", // Lab
+      "0x90F79bf6EB2c4f870365E785982E1f101E93b906"  // Court
+    ],
+    proposals: [
+      {
+        id: 1,
+        action: "Register",
+        targetParty: "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+        role: 4,
+        roleName: "Defense Counsel",
+        proposer: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+        approvals: [
+          "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+        ],
+        createdAt: Date.now() - 3600000,
+        expiresAt: Date.now() + 7 * 86400000,
+        executed: true
+      }
+    ]
+  }
 };
+
+function isCouncilMember(addr) {
+  if (!addr) return false;
+  const lower = addr.toLowerCase();
+  return state.council.members.some(m => m.toLowerCase() === lower);
+}
 
 // ---------------------------------------------------------------- Crypto Helpers
 async function computeSha256(buffer) {
@@ -226,6 +257,9 @@ function switchTab(target) {
 
 function canAccessTab(targetTab, role) {
   if (isDemoMode) return true;
+  if (targetTab === "council") {
+    return isCouncilMember(connectedAccount);
+  }
   if (!connectedAccount || role === 0) {
     return targetTab === "verify" || targetTab === "timeline";
   }
@@ -258,11 +292,15 @@ function applyRolePermissions(role, address) {
   const cardDisposal = document.getElementById("cardDisposal");
   const cardEvidentiaryHold = document.getElementById("cardEvidentiaryHold");
 
+  const isCouncil = isDemoMode || isCouncilMember(address);
+  if (tabBtnCouncil) tabBtnCouncil.style.display = isCouncil ? "inline-flex" : "none";
+
   if (isDemoMode) {
     if (notRegBanner) notRegBanner.style.display = "none";
     if (tabBtnRegister) tabBtnRegister.style.display = "inline-flex";
     if (tabBtnCustody) tabBtnCustody.style.display = "inline-flex";
     if (tabBtnTimeline) tabBtnTimeline.style.display = "inline-flex";
+    if (tabBtnCouncil) tabBtnCouncil.style.display = "inline-flex";
     if (cardCustodyTransfer) cardCustodyTransfer.style.display = "block";
     if (cardAccessControl) cardAccessControl.style.display = "block";
     if (cardJudicialSealing) cardJudicialSealing.style.display = "block";
@@ -273,12 +311,12 @@ function applyRolePermissions(role, address) {
 
   // Deny by default: unregistered wallet sees read-only verify page and "not registered" notice
   if (!address || role === 0) {
-    if (notRegBanner) notRegBanner.style.display = address ? "flex" : "none";
+    if (notRegBanner) notRegBanner.style.display = (address && !isCouncil) ? "flex" : "none";
     if (tabBtnRegister) tabBtnRegister.style.display = "none";
     if (tabBtnCustody) tabBtnCustody.style.display = "none";
     if (tabBtnTimeline) tabBtnTimeline.style.display = address ? "inline-flex" : "none";
-    if (tabBtnCouncil) tabBtnCouncil.style.display = "none";
-    switchTab("verify");
+    if (tabBtnCouncil) tabBtnCouncil.style.display = isCouncil ? "inline-flex" : "none";
+    if (!isCouncil) switchTab("verify");
     return;
   }
 
@@ -333,13 +371,14 @@ function updatePersonaDisplay() {
     }
   }
 
-  // Update permissions display, seal banner, disposal, and hold controls
+  // Update permissions display, seal banner, disposal, hold, and council controls
   renderAccessMatrix();
   renderAuditTrail();
   updateTopStats();
   updateSealControls();
   updateDisposalControls();
   updateHoldControls();
+  renderCouncilProposals();
   applyRolePermissions(
     isDemoMode
       ? (currentPersonaKey === "investigator" ? 1 : currentPersonaKey === "lab" ? 2 : currentPersonaKey === "court" ? 3 : currentPersonaKey === "defense" ? 4 : 0)
@@ -562,6 +601,127 @@ function renderAuditTrail() {
     `;
     timeline.appendChild(item);
   });
+}
+
+function renderCouncilProposals() {
+  const container = document.getElementById("councilProposalsList");
+  if (!container) return;
+
+  const thresholdDisplay = document.getElementById("councilThresholdDisplay");
+  const memberCountDisplay = document.getElementById("councilMemberCountDisplay");
+  if (thresholdDisplay) thresholdDisplay.textContent = state.council.threshold;
+  if (memberCountDisplay) memberCountDisplay.textContent = state.council.members.length;
+
+  if (state.council.proposals.length === 0) {
+    container.innerHTML = `<p style="color: var(--text-dim);">No active proposals.</p>`;
+    return;
+  }
+
+  const activeUser = isDemoMode ? PERSONAS[currentPersonaKey].address.toLowerCase() : (connectedAccount || "").toLowerCase();
+  const userIsMember = isDemoMode || isCouncilMember(activeUser);
+
+  container.innerHTML = "";
+  [...state.council.proposals].reverse().forEach(p => {
+    const isExpired = Date.now() > p.expiresAt;
+    const hasApproved = p.approvals.some(a => a.toLowerCase() === activeUser);
+    const canApprove = userIsMember && !p.executed && !isExpired && !hasApproved;
+    const canExecute = userIsMember && !p.executed && !isExpired && p.approvals.length >= state.council.threshold;
+
+    let statusBadge = "";
+    if (p.executed) {
+      statusBadge = `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid var(--success); padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem;">✅ Executed</span>`;
+    } else if (isExpired) {
+      statusBadge = `<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid var(--danger); padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem;">⌛ Expired</span>`;
+    } else {
+      statusBadge = `<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid #f59e0b; padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem;">⏳ Pending (${p.approvals.length}/${state.council.threshold})</span>`;
+    }
+
+    const item = document.createElement("div");
+    item.className = "permission-item";
+    item.style.flexDirection = "column";
+    item.style.alignItems = "stretch";
+    item.style.gap = "0.75rem";
+    item.style.padding = "1rem";
+    item.style.marginBottom = "0.75rem";
+    item.style.background = "var(--bg-elevated)";
+    item.style.borderRadius = "var(--radius)";
+    item.style.border = "1px solid var(--border)";
+
+    item.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <strong>Proposal #${p.id}</strong> &bull;
+          <span style="font-weight: 600;">${p.action === "Register" ? "Register " + (p.roleName || ROLE_NAMES[p.role]) : "Deregister"}</span>
+          &bull; <code class="hash-code">${short(p.targetParty)}</code>
+        </div>
+        ${statusBadge}
+      </div>
+      <div style="font-size: 0.85rem; color: var(--text-dim); display: flex; gap: 1.5rem; flex-wrap: wrap;">
+        <span>Proposer: ${short(p.proposer)}</span>
+        <span>Approvals: ${p.approvals.map(a => short(a)).join(", ") || "None"}</span>
+        <span>Expires: ${new Date(p.expiresAt).toLocaleDateString()}</span>
+      </div>
+      <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.25rem;">
+        ${canApprove ? `<button class="btn btn-primary btn-sm btn-council-approve" data-id="${p.id}">Sign Approval</button>` : ""}
+        ${canExecute ? `<button class="btn btn-secondary btn-sm btn-council-execute" data-id="${p.id}">Execute on Chain</button>` : ""}
+      </div>
+    `;
+    container.appendChild(item);
+  });
+
+  container.querySelectorAll(".btn-council-approve").forEach(b => {
+    b.addEventListener("click", () => handleCouncilApprove(Number(b.dataset.id)));
+  });
+  container.querySelectorAll(".btn-council-execute").forEach(b => {
+    b.addEventListener("click", () => handleCouncilExecute(Number(b.dataset.id)));
+  });
+}
+
+function handleCouncilApprove(id) {
+  const p = state.council.proposals.find(item => item.id === id);
+  if (!p) return;
+  const activeUser = isDemoMode ? PERSONAS[currentPersonaKey].address : connectedAccount;
+  if (!isCouncilMember(activeUser)) {
+    toast(`[REVERT] ${decodeCustomError({ message: "NotCouncilMember()" })}: Only council members can approve!`, "error");
+    return;
+  }
+  if (p.approvals.some(a => a.toLowerCase() === activeUser.toLowerCase())) {
+    toast(`[REVERT] ${decodeCustomError({ message: "AlreadyApproved()" })}: You have already approved Proposal #${id}!`, "error");
+    return;
+  }
+  p.approvals.push(activeUser);
+  currentBlock++;
+  state.auditTrail.push({
+    block: currentBlock,
+    event: "ProposalApproved",
+    by: isDemoMode ? currentPersonaKey : short(activeUser),
+    detail: `Council Member ${short(activeUser)} approved Proposal #${id}`,
+    time: new Date().toISOString().replace("T", " ").slice(0, 19)
+  });
+  renderCouncilProposals();
+  renderAuditTrail();
+  toast(`Proposal #${id} approved successfully (${p.approvals.length}/${state.council.threshold} approvals)`, "success");
+}
+
+function handleCouncilExecute(id) {
+  const p = state.council.proposals.find(item => item.id === id);
+  if (!p) return;
+  if (p.approvals.length < state.council.threshold) {
+    toast(`[REVERT] ${decodeCustomError({ message: "ProposalNotApproved()" })}: Proposal needs ${state.council.threshold} approvals before execution!`, "error");
+    return;
+  }
+  p.executed = true;
+  currentBlock++;
+  state.auditTrail.push({
+    block: currentBlock,
+    event: "ProposalExecuted",
+    by: isDemoMode ? currentPersonaKey : short(connectedAccount),
+    detail: `Council Proposal #${id} executed: ${p.action} ${short(p.targetParty)} (${p.roleName || ROLE_NAMES[p.role]})`,
+    time: new Date().toISOString().replace("T", " ").slice(0, 19)
+  });
+  renderCouncilProposals();
+  renderAuditTrail();
+  toast(`🏛️ Proposal #${id} executed! Role changes enforced on-chain.`, "success");
 }
 
 // ---------------------------------------------------------------- Core Workflows
@@ -1226,6 +1386,66 @@ document.addEventListener("DOMContentLoaded", () => {
     el.textContent = "🚨 REJECTED: Decrypted file SHA-256 does NOT match on-chain hash! Rogue substitution caught.";
     toast("Layer 3 defense: Blockchain on-chain hash caught insider forgery!", "error");
   });
+
+  // Role Council Proposal Submission
+  const councilActionSelect = document.getElementById("councilActionSelect");
+  if (councilActionSelect) {
+    councilActionSelect.addEventListener("change", (e) => {
+      const group = document.getElementById("councilRoleSelectGroup");
+      if (group) {
+        group.style.display = e.target.value === "deregister" ? "none" : "block";
+      }
+    });
+  }
+
+  const btnSubmitCouncil = document.getElementById("btnSubmitCouncilProposal");
+  if (btnSubmitCouncil) {
+    btnSubmitCouncil.addEventListener("click", () => {
+      const activeUser = isDemoMode ? PERSONAS[currentPersonaKey].address : connectedAccount;
+      if (!isCouncilMember(activeUser)) {
+        toast(`[REVERT] ${decodeCustomError({ message: "NotCouncilMember()" })}: Only council members can submit proposals!`, "error");
+        return;
+      }
+
+      const action = document.getElementById("councilActionSelect").value;
+      const targetParty = document.getElementById("councilPartyAddress").value.trim();
+      const role = Number(document.getElementById("councilRoleSelect").value);
+
+      if (!targetParty || !ethers.isAddress(targetParty)) {
+        toast(`[REVERT] ${decodeCustomError({ message: "InvalidMember()" })}: Enter a valid Ethereum address`, "error");
+        return;
+      }
+
+      const newId = state.council.proposals.length + 1;
+      const now = Date.now();
+      state.council.proposals.push({
+        id: newId,
+        action: action === "register" ? "Register" : "Deregister",
+        targetParty,
+        role: action === "register" ? role : 0,
+        roleName: action === "register" ? ROLE_NAMES[role] : "None",
+        proposer: activeUser,
+        approvals: [activeUser],
+        createdAt: now,
+        expiresAt: now + 7 * 86400000,
+        executed: false
+      });
+
+      currentBlock++;
+      state.auditTrail.push({
+        block: currentBlock,
+        event: "ProposalCreated",
+        by: isDemoMode ? currentPersonaKey : short(activeUser),
+        detail: `Council Proposal #${newId} created: ${action === "register" ? "Register " + ROLE_NAMES[role] : "Deregister"} for ${short(targetParty)}`,
+        time: new Date().toISOString().replace("T", " ").slice(0, 19)
+      });
+
+      renderCouncilProposals();
+      renderAuditTrail();
+      toast(`Proposal #${newId} submitted! Your approval was recorded automatically.`, "success");
+      document.getElementById("councilPartyAddress").value = "";
+    });
+  }
 
   // ---------------------------------------------------------------- Auth & Wallet Handlers
   async function loginWithSiwe() {
