@@ -20,7 +20,6 @@
   <!-- Header / Navigation -->
   <header class="app-header">
     <div class="header-brand">
-      <div class="logo-mark">CHAINCUSTODY</div>
       <div>
         <h1>ChainCustody</h1>
         <p class="subtitle">Decentralized Evidence Provenance & Audit Trail</p>
@@ -160,8 +159,8 @@
           </div>
 
           <!-- Hardware Provenance Card (ISO/IEC 27037) -->
-          <div id="provenanceCard" class="file-details" style="margin-top: 1rem; background: rgba(34, 51, 74, 0.4); border: 1px solid var(--border);">
-            <h4 style="color: var(--judicial-bronze); font-size: 0.85rem; margin-bottom: 0.5rem;">Hardware Provenance (ISO/IEC 27037)</h4>
+          <div id="provenanceCard" class="file-details" style="margin-top: 1rem; background: rgba(25, 38, 51, 0.4); border: 1px solid var(--border);">
+            <h4 style="color: var(--warning); font-size: 0.85rem; margin-bottom: 0.5rem;">Hardware Provenance (ISO/IEC 27037)</h4>
             <div class="detail-row"><span>Device Serial:</span> <code id="dispDeviceSerial" class="hash-code">SAMSUNG-980PRO-NVMe-1TB-SN5GANG0N10423</code></div>
             <div class="detail-row"><span>Acquisition Tool:</span> <span id="dispAcquisitionTool">FTK Imager v4.7.1.2 (Hardware Write-Blocker)</span></div>
             <div class="detail-row"><span>Seizing Officer:</span> <span id="dispOfficerBadge">DET-7749-CYBER [US-CA-SFO-CCU]</span></div>
@@ -180,12 +179,12 @@
           </div>
 
           <!-- Decrypted Evidence Viewer (Audit-First) -->
-          <div id="decryptedViewerCard" class="file-details" style="display: none; margin-top: 1rem; border-left: 4px solid var(--forensic-emerald); background: var(--bg-card);">
+          <div id="decryptedViewerCard" class="file-details" style="display: none; margin-top: 1rem; border-left: 4px solid var(--primary); background: var(--bg-card);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-              <h4 style="color: var(--forensic-emerald); font-size: 0.85rem; margin: 0;">Decrypted Evidence (Audit-First Unwrapped via RSA-OAEP Key in IndexedDB)</h4>
+              <h4 style="color: var(--primary); font-size: 0.85rem; margin: 0;">Decrypted Evidence (Audit-First Unwrapped via RSA-OAEP Key in IndexedDB)</h4>
               <button id="closeViewerBtn" class="btn btn-outline btn-sm" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">Close</button>
             </div>
-            <pre id="decryptedContentPre" style="background: var(--obsidian-navy); padding: 0.75rem; border-radius: var(--radius); font-family: var(--font-mono); font-size: 0.8rem; overflow-x: auto; white-space: pre-wrap; margin: 0;"></pre>
+            <pre id="decryptedContentPre" style="background: var(--bg-dark); padding: 0.75rem; border-radius: var(--radius); font-family: var(--font-mono); font-size: 0.8rem; overflow-x: auto; white-space: pre-wrap; margin: 0;"></pre>
           </div>
         </div>
       </div>
@@ -222,7 +221,7 @@
 
         <!-- ISO/IEC 27037 Hardware Acquisition Provenance Inputs -->
         <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border);">
-          <h4 style="font-size: 0.9rem; color: var(--judicial-bronze); margin-bottom: 0.75rem;">Forensic Acquisition Metadata (ISO/IEC 27037)</h4>
+          <h4 style="font-size: 0.9rem; color: var(--warning); margin-bottom: 0.75rem;">Forensic Acquisition Metadata (ISO/IEC 27037)</h4>
           <div class="form-group">
             <label for="regDeviceSerial">Hardware Device Serial / Storage UUID:</label>
             <input type="text" id="regDeviceSerial" class="input-field" value="SAMSUNG-980PRO-NVMe-1TB-SN5GANG0N10423">
@@ -311,7 +310,7 @@
 
         <!-- Judicial Sealing Card -->
         <div class="card" id="cardJudicialSealing" style="grid-column: 1 / -1; margin-top: 1rem; border-left: 4px solid var(--warning);">
-          <div class="card-badge" style="background: var(--warning-bg); color: var(--judicial-bronze);">Court Order Only</div>
+          <div class="card-badge" style="background: var(--warning-bg); color: var(--warning);">Court Order Only</div>
           <h3>Judicial Sealing & Impoundment Protocol</h3>
           <p class="card-desc">Pursuant to FRE 902 / procedural rules, the presiding Court Magistrate can freeze all custody handovers and access permissions.</p>
 
@@ -356,7 +355,7 @@
 
         <!-- Evidentiary Hold & Statutory Retention Lock Card -->
         <div class="card" id="cardEvidentiaryHold" style="grid-column: 1 / -1; margin-top: 1rem; border-left: 4px solid var(--primary);">
-          <div class="card-badge" style="background: var(--success-bg); color: var(--forensic-emerald);">Statutory Retention Lock</div>
+          <div class="card-badge" style="background: var(--success-bg); color: var(--success);">Statutory Retention Lock</div>
           <h3>Time-Locked Evidentiary Hold Protocol</h3>
           <p class="card-desc">Lock evidence under litigation hold (FRCP 37(e)) or statutory retention mandates. Blocks all disposal and destruction until the timestamp expires or Court dismisses the hold.</p>
 

@@ -1,40 +1,57 @@
 :root {
-  /* The Revised Palette */
-  --obsidian-navy: #0B1220;    /* App background */
-  --courtroom-slate: #162236;  /* Cards and panels */
-  --steel-blue: #22334A;       /* Inputs and hover surfaces */
-  --forensic-emerald: #26977B; /* Primary buttons and verification */
-  --judicial-bronze: #C5A46D;  /* Legal highlights and seals */
-  --document-white: #E5EAF0;   /* Main text and document content */
+  /* Requested Color Palette */
+  --color-background: #131C26;
+  --color-sidebar: #192633;
+  --color-cards: #202D39;
+  --color-card-hover: #2B3945;
+  --color-borders: #35424D;
+  --color-primary: #B18A60;
+  --color-primary-hover: #C5A47E;
+  --color-secondary: #82999B;
+  --color-text: #E8E6DF;
+  --color-muted-text: #A2AAA9;
+  --color-success: #73947B;
+  --color-warning: #C09A5A;
+  --color-danger: #BF7770;
+
+  /* Aliases for backwards-compatibility */
+  --obsidian-navy: var(--color-background);
+  --courtroom-slate: var(--color-cards);
+  --steel-blue: var(--color-sidebar);
+  --forensic-emerald: var(--color-success);
+  --judicial-bronze: var(--color-primary);
+  --document-white: var(--color-text);
 
   /* Functional Theme Mapping */
-  --bg-dark: var(--obsidian-navy);
-  --bg-card: var(--courtroom-slate);
-  --bg-card-hover: #1c2b42;
-  --bg-input: var(--steel-blue);
-  --border: #24354e;
-  --border-focus: var(--forensic-emerald);
+  --bg-dark: var(--color-background);
+  --bg-sidebar: var(--color-sidebar);
+  --bg-card: var(--color-cards);
+  --bg-card-hover: var(--color-card-hover);
+  --bg-input: var(--color-sidebar);
+  --border: var(--color-borders);
+  --border-focus: var(--color-primary);
 
-  --text-main: var(--document-white);
-  --text-muted: #9baec2;
-  --text-dim: #6d8095;
+  --text-main: var(--color-text);
+  --text-muted: var(--color-muted-text);
+  --text-dim: #738080;
 
-  --primary: var(--forensic-emerald);
-  --primary-hover: #1e7d66;
+  --primary: var(--color-primary);
+  --primary-hover: var(--color-primary-hover);
+  --secondary: var(--color-secondary);
 
-  --success: var(--forensic-emerald);
-  --success-bg: rgba(38, 151, 123, 0.15);
+  --success: var(--color-success);
+  --success-bg: rgba(115, 148, 123, 0.15);
 
-  --danger: #d9534f;
-  --danger-bg: rgba(217, 83, 79, 0.15);
+  --danger: var(--color-danger);
+  --danger-bg: rgba(191, 119, 112, 0.15);
 
-  --warning: var(--judicial-bronze);
-  --warning-bg: rgba(197, 164, 109, 0.15);
+  --warning: var(--color-warning);
+  --warning-bg: rgba(192, 154, 90, 0.15);
 
   --radius: 8px;
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-  --shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
 }
 
 * {
@@ -57,7 +74,7 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 1.25rem 2.5rem;
-  background: rgba(22, 34, 54, 0.95);
+  background: rgba(25, 38, 51, 0.95);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
   position: sticky;
@@ -71,23 +88,12 @@ body {
   gap: 1rem;
 }
 
-.logo-mark {
-  font-size: 0.95rem;
-  font-weight: 800;
-  letter-spacing: 1px;
-  background: var(--steel-blue);
-  color: var(--judicial-bronze);
-  padding: 0.45rem 0.75rem;
-  border-radius: var(--radius);
-  border: 1px solid var(--judicial-bronze);
-  font-family: var(--font-mono);
-}
 
 .header-brand h1 {
   font-size: 1.5rem;
   font-weight: 800;
   letter-spacing: -0.5px;
-  color: #fff;
+  color: var(--text-main);
 }
 
 .subtitle {
@@ -120,7 +126,7 @@ body {
 .persona-selector select {
   background: transparent;
   border: none;
-  color: #fff;
+  color: var(--text-main);
   font-weight: 700;
   font-family: var(--font-sans);
   font-size: 0.9rem;
@@ -132,8 +138,8 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: var(--success-bg);
+  border: 1px solid rgba(115, 148, 123, 0.4);
   color: var(--success);
   padding: 0.4rem 0.8rem;
   border-radius: 20px;
@@ -193,7 +199,7 @@ body {
 .stat-val {
   font-size: 1.4rem;
   font-weight: 800;
-  color: #fff;
+  color: var(--text-main);
 }
 
 .stat-sub {
@@ -228,7 +234,7 @@ body {
 }
 
 .tab-btn:hover {
-  color: #fff;
+  color: var(--text-main);
   background: rgba(255, 255, 255, 0.04);
 }
 
@@ -297,7 +303,7 @@ body {
 .card h3 {
   font-size: 1.15rem;
   margin-bottom: 1rem;
-  color: #fff;
+  color: var(--text-main);
   font-weight: 700;
 }
 
@@ -314,11 +320,11 @@ body {
   font-size: 0.725rem;
   font-weight: 700;
   text-transform: uppercase;
-  background: rgba(56, 189, 248, 0.15);
+  background: rgba(177, 138, 96, 0.15);
   color: var(--primary);
   padding: 0.25rem 0.6rem;
   border-radius: 6px;
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  border: 1px solid rgba(177, 138, 96, 0.3);
 }
 
 .max-w-700 {
@@ -334,12 +340,12 @@ body {
   text-align: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  background: rgba(15, 23, 42, 0.5);
+  background: rgba(19, 28, 38, 0.6);
 }
 
 .drop-zone:hover, .drop-zone.dragover {
   border-color: var(--primary);
-  background: rgba(38, 151, 123, 0.05);
+  background: rgba(177, 138, 96, 0.08);
 }
 
 .drop-icon-label {
@@ -432,20 +438,20 @@ body {
 }
 
 .result-box.idle {
-  background: rgba(34, 51, 74, 0.4);
+  background: rgba(25, 38, 51, 0.5);
   border-color: var(--border);
   color: var(--text-muted);
 }
 
 .result-box.verified {
   background: var(--success-bg);
-  border-color: rgba(38, 151, 123, 0.4);
+  border-color: rgba(115, 148, 123, 0.4);
   color: var(--success);
 }
 
 .result-box.tampered {
   background: var(--danger-bg);
-  border-color: rgba(217, 83, 79, 0.4);
+  border-color: rgba(191, 119, 112, 0.4);
   color: var(--danger);
 }
 
@@ -510,22 +516,23 @@ body {
 
 .btn-primary {
   background: var(--primary);
-  color: #ffffff;
+  color: #131C26;
+  font-weight: 700;
 }
 
 .btn-primary:hover:not(:disabled) {
   background: var(--primary-hover);
-  box-shadow: 0 0 12px rgba(38, 151, 123, 0.35);
+  box-shadow: 0 0 12px rgba(177, 138, 96, 0.35);
 }
 
 .btn-secondary {
-  background: var(--bg-input);
+  background: var(--bg-card);
   border: 1px solid var(--border);
-  color: #fff;
+  color: var(--text-main);
 }
 
 .btn-secondary:hover {
-  background: #28374d;
+  background: var(--bg-card-hover);
 }
 
 .btn-outline {
@@ -535,14 +542,14 @@ body {
 }
 
 .btn-outline:hover {
-  color: #fff;
-  border-color: var(--text-muted);
+  color: var(--text-main);
+  border-color: var(--secondary);
 }
 
 .btn-outline-danger {
   background: transparent;
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  color: #ef4444;
+  border: 1px solid rgba(191, 119, 112, 0.4);
+  color: var(--danger);
 }
 
 .btn-outline-danger:hover {
@@ -551,12 +558,14 @@ body {
 
 .btn-success {
   background: var(--success);
-  color: #080d1a;
+  color: #131C26;
+  font-weight: 700;
 }
 
 .btn-danger {
   background: var(--danger);
   color: #fff;
+  font-weight: 700;
 }
 
 .btn-lg {
@@ -592,7 +601,7 @@ body {
 .input-field {
   background: var(--bg-input);
   border: 1px solid var(--border);
-  color: #fff;
+  color: var(--text-main);
   font-family: var(--font-sans);
   padding: 0.7rem 1rem;
   border-radius: 8px;
@@ -614,7 +623,7 @@ body {
 
 .select-wrapper select {
   background: var(--bg-input);
-  color: #fff;
+  color: var(--text-main);
   border: 1px solid var(--border);
   padding: 0.4rem 0.8rem;
   border-radius: 6px;
@@ -707,7 +716,7 @@ body {
 .timeline-title {
   font-size: 0.95rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-main);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -748,7 +757,7 @@ body {
 .tamper-card h3 {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-main);
 }
 
 .tamper-card p {
@@ -779,7 +788,7 @@ body {
 
 .defense-badge.highlight-blockchain {
   border-left-color: var(--success);
-  color: #fff;
+  color: var(--text-main);
 }
 
 /* Toast */
@@ -804,7 +813,7 @@ body {
 
 .toast.success { border-color: var(--success); color: var(--success); }
 .toast.error { border-color: var(--danger); color: var(--danger); }
-.toast.info { border-color: var(--primary); color: #fff; }
+.toast.info { border-color: var(--primary); color: var(--text-main); }
 
 @keyframes slideUp {
   from { transform: translateY(20px); opacity: 0; }
@@ -813,13 +822,13 @@ body {
 
 /* Judicial Sealing */
 .btn-warning {
-  background: var(--judicial-bronze);
-  color: #0B1220;
+  background: var(--warning);
+  color: #131C26;
   font-weight: 700;
   border: none;
 }
 .btn-warning:hover {
-  background: #b5945e;
+  background: #d4ae6d;
 }
 
 .seal-banner {
@@ -836,20 +845,20 @@ body {
 
 .seal-banner.unsealed {
   background: var(--success-bg);
-  border: 1px solid rgba(38, 151, 123, 0.4);
-  color: var(--forensic-emerald);
+  border: 1px solid rgba(115, 148, 123, 0.4);
+  color: var(--success);
 }
 
 .seal-banner.sealed {
   background: var(--warning-bg);
-  border: 1px solid rgba(197, 164, 109, 0.5);
-  color: var(--judicial-bronze);
+  border: 1px solid rgba(192, 154, 90, 0.5);
+  color: var(--warning);
 }
 
 .badge-sealed {
-  background: rgba(197, 164, 109, 0.2);
-  color: var(--judicial-bronze);
-  border: 1px solid rgba(197, 164, 109, 0.4);
+  background: var(--warning-bg);
+  color: var(--warning);
+  border: 1px solid rgba(192, 154, 90, 0.4);
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-size: 0.75rem;
@@ -858,14 +867,14 @@ body {
 }
 
 .seal-banner.pending {
-  background: rgba(197, 164, 109, 0.15);
-  border: 1px dashed rgba(197, 164, 109, 0.7);
-  color: var(--judicial-bronze);
+  background: var(--warning-bg);
+  border: 1px dashed rgba(192, 154, 90, 0.7);
+  color: var(--warning);
 }
 
 .seal-banner.disposed {
   background: var(--danger-bg);
-  border: 1px solid rgba(217, 83, 79, 0.6);
+  border: 1px solid rgba(191, 119, 112, 0.6);
   color: var(--danger);
 }
 
@@ -876,13 +885,13 @@ body {
   border: none;
 }
 .btn-danger-shred:hover {
-  background: #b53e3a;
+  background: #a8625b;
 }
 
 /* Hardening & Security Banners */
 .simulation-banner {
-  background: var(--judicial-bronze);
-  color: #0B1220;
+  background: var(--warning);
+  color: #131C26;
   font-weight: 800;
   text-align: center;
   padding: 0.5rem 1rem;
@@ -893,9 +902,9 @@ body {
 }
 
 .not-registered-banner {
-  background: rgba(197, 164, 109, 0.12);
-  border: 1px solid rgba(197, 164, 109, 0.4);
-  color: var(--judicial-bronze);
+  background: var(--warning-bg);
+  border: 1px solid rgba(192, 154, 90, 0.4);
+  color: var(--warning);
   padding: 0.85rem 1.5rem;
   margin: 1.5rem 2.5rem 0 2.5rem;
   border-radius: var(--radius);
@@ -920,8 +929,8 @@ body {
 
 .witness-badge.verified {
   background: var(--success-bg);
-  color: var(--forensic-emerald);
-  border: 1px solid var(--forensic-emerald);
+  color: var(--success);
+  border: 1px solid var(--success);
 }
 
 .witness-badge.warning {
@@ -943,20 +952,20 @@ body {
 
 .status-indicator.active {
   background: var(--success-bg);
-  color: var(--forensic-emerald);
-  border: 1px solid var(--forensic-emerald);
+  color: var(--success);
+  border: 1px solid var(--success);
 }
 
 .status-indicator.sealed {
   background: var(--warning-bg);
-  color: var(--judicial-bronze);
-  border: 1px solid var(--judicial-bronze);
+  color: var(--warning);
+  border: 1px solid var(--warning);
 }
 
 .status-indicator.hold {
   background: var(--warning-bg);
-  color: var(--judicial-bronze);
-  border: 1px solid var(--judicial-bronze);
+  color: var(--warning);
+  border: 1px solid var(--warning);
 }
 
 .status-indicator.disposed {
@@ -970,8 +979,8 @@ body {
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.5px;
-  background: var(--steel-blue);
-  color: var(--document-white);
+  background: var(--bg-card-hover);
+  color: var(--text-main);
   padding: 0.2rem 0.5rem;
   border-radius: 4px;
   border: 1px solid var(--border);

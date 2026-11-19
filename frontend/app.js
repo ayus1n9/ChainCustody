@@ -740,11 +740,11 @@ function renderCouncilProposals() {
 
     let statusBadge = "";
     if (p.executed) {
-      statusBadge = `<span class="badge" style="background: var(--success-bg); color: var(--forensic-emerald); border: 1px solid var(--forensic-emerald); padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">EXECUTED</span>`;
+      statusBadge = `<span class="badge" style="background: var(--success-bg); color: var(--success); border: 1px solid var(--success); padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">EXECUTED</span>`;
     } else if (isExpired) {
       statusBadge = `<span class="badge" style="background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger); padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">EXPIRED</span>`;
     } else {
-      statusBadge = `<span class="badge" style="background: var(--warning-bg); color: var(--judicial-bronze); border: 1px solid var(--judicial-bronze); padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">PENDING (${p.approvals.length}/${state.council.threshold})</span>`;
+      statusBadge = `<span class="badge" style="background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning); padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">PENDING (${p.approvals.length}/${state.council.threshold})</span>`;
     }
 
     const item = document.createElement("div");
