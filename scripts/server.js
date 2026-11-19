@@ -278,7 +278,7 @@ function startServer(port = PORT, host = HOST) {
   const server = createServer();
   server.listen(port, bindHost, () => {
     console.log(`\n======================================================`);
-    console.log(`🛡️  ChainCustody Web Dashboard running at:`);
+    console.log(`ChainCustody Web Dashboard running at:`);
     console.log(`    http://${bindHost}:${port}`);
     console.log(`    Mode: ${isDemo ? "DEMO SIMULATION (127.0.0.1 only)" : "PRODUCTION (SIWE Wallet Auth)"}`);
     console.log(`======================================================\n`);

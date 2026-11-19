@@ -14,13 +14,13 @@
 <body>
   <!-- Simulation Mode Banner -->
   <div id="simBanner" class="simulation-banner" style="display: none;">
-    ⚠️ SIMULATION – no real evidence. Running in local demonstration sandbox.
+    SIMULATION MODE – Local demonstration sandbox. No real evidence.
   </div>
 
   <!-- Header / Navigation -->
   <header class="app-header">
     <div class="header-brand">
-      <div class="logo-icon">🛡️</div>
+      <div class="logo-mark">CHAINCUSTODY</div>
       <div>
         <h1>ChainCustody</h1>
         <p class="subtitle">Decentralized Evidence Provenance & Audit Trail</p>
@@ -32,11 +32,11 @@
       <div class="persona-selector" id="personaSelectorContainer" style="display: none;">
         <label for="personaSelect">Active Role:</label>
         <select id="personaSelect">
-          <option value="investigator">👮 Investigator (Police)</option>
-          <option value="lab">🔬 Forensic Lab</option>
-          <option value="court">⚖️ Court (Judge)</option>
-          <option value="defense">🛡️ Defense Counsel</option>
-          <option value="outsider">👤 Outsider (Unauthorized)</option>
+          <option value="investigator">Investigator (Police)</option>
+          <option value="lab">Forensic Lab</option>
+          <option value="court">Court (Magistrate)</option>
+          <option value="defense">Defense Counsel</option>
+          <option value="outsider">Unauthorized Observer</option>
         </select>
       </div>
 
@@ -48,7 +48,7 @@
 
       <!-- Witness Verification Header Badge -->
       <div id="witnessHeaderBadge" class="witness-badge verified" style="display: none;">
-        <span>🛡️ Witness: Verified</span>
+        <span>Witness: Verified</span>
       </div>
 
       <button id="connectWalletBtn" class="btn btn-secondary">Connect Wallet & Sign In</button>
@@ -58,7 +58,7 @@
 
   <!-- Unregistered Notice Banner -->
   <div id="notRegisteredBanner" class="not-registered-banner" style="display: none;">
-    ⚠️ Wallet connected, but this address is not registered on the ChainCustody smart contract. You have read-only access to verify evidence.
+    Notice: Wallet connected, but this address is not registered on the ChainCustody smart contract. Read-only verification access.
   </div>
 
   <!-- Notification Bar -->
@@ -97,12 +97,12 @@
 
     <!-- Navigation Tabs -->
     <nav class="tabs-nav">
-      <button class="tab-btn active" data-tab="verify" id="tabBtnVerify">🔍 Verify Integrity</button>
-      <button class="tab-btn" data-tab="register" id="tabBtnRegister">📤 Register Evidence</button>
-      <button class="tab-btn" data-tab="custody" id="tabBtnCustody">🔄 Custody & Access</button>
-      <button class="tab-btn" data-tab="timeline" id="tabBtnTimeline">📜 Audit Trail</button>
-      <button class="tab-btn" data-tab="tamper" id="tabBtnTamper" style="display: none;">🧪 Tamper Sandbox</button>
-      <button class="tab-btn" data-tab="council" id="tabBtnCouncil" style="display: none;">🏛️ Role Council</button>
+      <button class="tab-btn active" data-tab="verify" id="tabBtnVerify">Verify Integrity</button>
+      <button class="tab-btn" data-tab="register" id="tabBtnRegister">Register Evidence</button>
+      <button class="tab-btn" data-tab="custody" id="tabBtnCustody">Custody & Access</button>
+      <button class="tab-btn" data-tab="timeline" id="tabBtnTimeline">Audit Trail</button>
+      <button class="tab-btn" data-tab="tamper" id="tabBtnTamper" style="display: none;">Tamper Sandbox</button>
+      <button class="tab-btn" data-tab="council" id="tabBtnCouncil" style="display: none;">Role Council</button>
     </nav>
 
     <!-- TAB 1: Verify Integrity -->
@@ -124,7 +124,7 @@
         <div class="card">
           <h3>1. Drag & Drop File to Verify</h3>
           <div id="verifyDropZone" class="drop-zone">
-            <div class="drop-icon">📁</div>
+            <div class="drop-icon-label">[ SELECT OR DROP EVIDENCE FILE ]</div>
             <p>Drag file here or <span class="highlight">browse</span></p>
             <input type="file" id="verifyFileInput" hidden>
             <span class="file-hint">Drop the original or a modified file to test verification</span>
@@ -141,16 +141,17 @@
           <h3>2. On-Chain Ground Truth vs Local File</h3>
           <div class="comparison-box">
             <div class="hash-row">
-              <span class="hash-label">⛓️ Anchored On-Chain:</span>
+              <span class="hash-label">Anchored On-Chain:</span>
               <code id="onChainHashDisplay" class="hash-code">0x90acf3be541bc1d27c273001ed756e4ed1eac3e6e14d16dcb484454038bccc68</code>
             </div>
             <div class="hash-row">
-              <span class="hash-label">📄 Uploaded File:</span>
+              <span class="hash-label">Uploaded File:</span>
               <code id="uploadedHashDisplay" class="hash-code">Drop a file to compute</code>
             </div>
 
             <div id="verificationResultBox" class="result-box idle">
-              <div class="result-icon">⏳</div>
+              <div class="result-badge confirmed" style="display: none;">VERIFIED</div>
+              <div class="result-badge alert" style="display: none;">TAMPER DETECTED</div>
               <div class="result-text">
                 <h4>Awaiting File</h4>
                 <p>Upload a file to trigger automated cryptographic verification.</p>
@@ -159,8 +160,8 @@
           </div>
 
           <!-- Hardware Provenance Card (ISO/IEC 27037) -->
-          <div id="provenanceCard" class="file-details" style="margin-top: 1rem; background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.2);">
-            <h4 style="color: var(--primary); font-size: 0.85rem; margin-bottom: 0.5rem;">🏷️ Hardware Provenance (ISO/IEC 27037)</h4>
+          <div id="provenanceCard" class="file-details" style="margin-top: 1rem; background: rgba(34, 51, 74, 0.4); border: 1px solid var(--border);">
+            <h4 style="color: var(--judicial-bronze); font-size: 0.85rem; margin-bottom: 0.5rem;">Hardware Provenance (ISO/IEC 27037)</h4>
             <div class="detail-row"><span>Device Serial:</span> <code id="dispDeviceSerial" class="hash-code">SAMSUNG-980PRO-NVMe-1TB-SN5GANG0N10423</code></div>
             <div class="detail-row"><span>Acquisition Tool:</span> <span id="dispAcquisitionTool">FTK Imager v4.7.1.2 (Hardware Write-Blocker)</span></div>
             <div class="detail-row"><span>Seizing Officer:</span> <span id="dispOfficerBadge">DET-7749-CYBER [US-CA-SFO-CCU]</span></div>
@@ -168,23 +169,23 @@
 
           <div class="action-footer">
             <button id="btnDecryptAndView" class="btn btn-primary" title="Audit-first access: calls logAccess on-chain before unwrapping AES key">
-              🔓 Decrypt & View File
+              Decrypt & View File
             </button>
             <button id="logAccessBtn" class="btn btn-outline" title="Record in the audit trail that you accessed this evidence">
-              ✍️ Record Access in Audit Log
+              Record Access in Audit Log
             </button>
             <button id="quickSampleBtn" class="btn btn-outline">Load Original Sample</button>
             <button id="quickTamperBtn" class="btn btn-outline-danger">Load Tampered Sample</button>
-            <button id="exportCertBtn" class="btn btn-secondary">📜 Export Court Certificate</button>
+            <button id="exportCertBtn" class="btn btn-secondary">Export Court Certificate</button>
           </div>
 
           <!-- Decrypted Evidence Viewer (Audit-First) -->
-          <div id="decryptedViewerCard" class="file-details" style="display: none; margin-top: 1rem; border-left: 4px solid var(--success); background: rgba(16, 185, 129, 0.05);">
+          <div id="decryptedViewerCard" class="file-details" style="display: none; margin-top: 1rem; border-left: 4px solid var(--forensic-emerald); background: var(--bg-card);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-              <h4 style="color: var(--success); font-size: 0.85rem; margin: 0;">🔓 Decrypted Evidence (Audit-First Unwrapped via RSA-OAEP Key in IndexedDB)</h4>
+              <h4 style="color: var(--forensic-emerald); font-size: 0.85rem; margin: 0;">Decrypted Evidence (Audit-First Unwrapped via RSA-OAEP Key in IndexedDB)</h4>
               <button id="closeViewerBtn" class="btn btn-outline btn-sm" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">Close</button>
             </div>
-            <pre id="decryptedContentPre" style="background: var(--bg-base); padding: 0.75rem; border-radius: var(--radius); font-family: var(--font-mono); font-size: 0.8rem; overflow-x: auto; white-space: pre-wrap; margin: 0;"></pre>
+            <pre id="decryptedContentPre" style="background: var(--obsidian-navy); padding: 0.75rem; border-radius: var(--radius); font-family: var(--font-mono); font-size: 0.8rem; overflow-x: auto; white-space: pre-wrap; margin: 0;"></pre>
           </div>
         </div>
       </div>
@@ -201,7 +202,7 @@
 
       <div class="card max-w-700">
         <div id="registerDropZone" class="drop-zone">
-          <div class="drop-icon">🛡️</div>
+          <div class="drop-icon-label">[ SELECT ACQUISITION IMAGE ]</div>
           <p>Drag evidence file here or <span class="highlight">browse</span></p>
           <input type="file" id="registerFileInput" hidden>
           <span class="file-hint">Disk images, mobile extractions, PDFs, forensic logs</span>
@@ -221,7 +222,7 @@
 
         <!-- ISO/IEC 27037 Hardware Acquisition Provenance Inputs -->
         <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border);">
-          <h4 style="font-size: 0.9rem; color: var(--primary); margin-bottom: 0.75rem;">🏷️ Forensic Acquisition Metadata (ISO/IEC 27037)</h4>
+          <h4 style="font-size: 0.9rem; color: var(--judicial-bronze); margin-bottom: 0.75rem;">Forensic Acquisition Metadata (ISO/IEC 27037)</h4>
           <div class="form-group">
             <label for="regDeviceSerial">Hardware Device Serial / Storage UUID:</label>
             <input type="text" id="regDeviceSerial" class="input-field" value="SAMSUNG-980PRO-NVMe-1TB-SN5GANG0N10423">
@@ -244,7 +245,7 @@
 
         <div class="form-actions" style="margin-top: 1.5rem;">
           <button id="btnRegisterOnChain" class="btn btn-primary btn-lg" disabled>
-            🔒 Encrypt & Anchor on Blockchain
+            Encrypt & Anchor on Blockchain
           </button>
         </div>
       </div>
@@ -263,35 +264,35 @@
         <!-- Custody Transfer -->
         <div class="card" id="cardCustodyTransfer">
           <div class="card-badge">Current Custodian Only</div>
-          <h3>🔄 Transfer Custody (The Chain)</h3>
+          <h3>Transfer Custody</h3>
           <p class="card-desc">Transfer legal and physical custody of Evidence #1 to another registered party.</p>
 
           <div class="form-group">
             <label>Transfer Custody To:</label>
             <select id="transferTargetSelect" class="input-field">
-              <option value="court">⚖️ Court (Judge)</option>
-              <option value="lab">🔬 Forensic Lab</option>
-              <option value="investigator">👮 Investigator</option>
+              <option value="court">Court (Judge)</option>
+              <option value="lab">Forensic Lab</option>
+              <option value="investigator">Investigator</option>
             </select>
           </div>
 
           <div class="btn-group">
             <button id="btnTransferCustody" class="btn btn-primary">Execute Custody Transfer</button>
-            <button id="btnSignHandoverEIP712" class="btn btn-outline" title="Sign off-chain with EIP-712 typed structured attestation">🔏 Gasless EIP-712 Sign & Relay</button>
+            <button id="btnSignHandoverEIP712" class="btn btn-outline" title="Sign off-chain with EIP-712 typed structured attestation">Gasless EIP-712 Sign & Relay</button>
           </div>
         </div>
 
         <!-- Access Control -->
         <div class="card" id="cardAccessControl">
           <div class="card-badge">Role-Based Access</div>
-          <h3>🔑 Manage Access Grants</h3>
+          <h3>Manage Access Grants</h3>
           <p class="card-desc">Grant or revoke permission to inspect the encrypted evidence.</p>
 
           <div class="form-group">
             <label>Target Party:</label>
             <select id="accessTargetSelect" class="input-field">
-              <option value="lab">🔬 Forensic Lab</option>
-              <option value="defense">🛡️ Defense Counsel</option>
+              <option value="lab">Forensic Lab</option>
+              <option value="defense">Defense Counsel</option>
             </select>
           </div>
 
@@ -310,12 +311,12 @@
 
         <!-- Judicial Sealing Card -->
         <div class="card" id="cardJudicialSealing" style="grid-column: 1 / -1; margin-top: 1rem; border-left: 4px solid var(--warning);">
-          <div class="card-badge" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b;">Court Order Only</div>
-          <h3>⚖️ Judicial Sealing & Impoundment Protocol</h3>
+          <div class="card-badge" style="background: var(--warning-bg); color: var(--judicial-bronze);">Court Order Only</div>
+          <h3>Judicial Sealing & Impoundment Protocol</h3>
           <p class="card-desc">Pursuant to FRE 902 / procedural rules, the presiding Court Magistrate can freeze all custody handovers and access permissions.</p>
 
           <div id="sealStatusBanner" class="seal-banner unsealed">
-            <span id="sealStatusIcon">🟢</span>
+            <span id="sealStatusIcon" class="status-indicator active">Active</span>
             <span id="sealStatusText">Status: Unsealed (Active Chain of Custody)</span>
           </div>
 
@@ -325,19 +326,19 @@
           </div>
 
           <div class="btn-group">
-            <button id="btnSealEvidence" class="btn btn-warning">⚖️ Seal Evidence by Court Order</button>
-            <button id="btnUnsealEvidence" class="btn btn-outline" disabled>🔓 Unseal Evidence</button>
+            <button id="btnSealEvidence" class="btn btn-warning">Seal Evidence by Court Order</button>
+            <button id="btnUnsealEvidence" class="btn btn-outline" disabled>Unseal Evidence</button>
           </div>
         </div>
 
         <!-- Multi-Party Disposal & Key Shredding Card -->
         <div class="card" id="cardDisposal" style="grid-column: 1 / -1; margin-top: 1rem; border-left: 4px solid var(--danger);">
-          <div class="card-badge" style="background: rgba(239, 68, 68, 0.2); color: #ef4444;">Dual Authorization Protocol</div>
-          <h3>🔥 Multi-Party Expungement & Cryptographic Shredding</h3>
+          <div class="card-badge" style="background: var(--danger-bg); color: var(--danger);">Dual Authorization Protocol</div>
+          <h3>Multi-Party Expungement & Cryptographic Shredding</h3>
           <p class="card-desc">Prevents unilateral evidence spoliation. Requires Court judicial decree + Active Custodian concurrence to permanently shred AES keys and clear off-chain storage pointers.</p>
 
           <div id="disposalStatusBanner" class="seal-banner unsealed">
-            <span id="disposalStatusIcon">🟢</span>
+            <span id="disposalStatusIcon" class="status-indicator active">Active</span>
             <span id="disposalStatusText">Status: Active Record (Not Expunged)</span>
           </div>
 
@@ -347,20 +348,20 @@
           </div>
 
           <div class="btn-group">
-            <button id="btnProposeDisposal" class="btn btn-warning">⚖️ Propose Expungement (Court)</button>
-            <button id="btnConfirmDisposal" class="btn btn-danger-shred" disabled>🔥 Execute Key Shredding (Custodian)</button>
-            <button id="btnCancelDisposal" class="btn btn-outline" disabled>❌ Cancel Proposal</button>
+            <button id="btnProposeDisposal" class="btn btn-warning">Propose Expungement (Court)</button>
+            <button id="btnConfirmDisposal" class="btn btn-danger-shred" disabled>Execute Key Shredding (Custodian)</button>
+            <button id="btnCancelDisposal" class="btn btn-outline" disabled>Cancel Proposal</button>
           </div>
         </div>
 
         <!-- Evidentiary Hold & Statutory Retention Lock Card -->
         <div class="card" id="cardEvidentiaryHold" style="grid-column: 1 / -1; margin-top: 1rem; border-left: 4px solid var(--primary);">
-          <div class="card-badge" style="background: rgba(14, 165, 233, 0.2); color: #0ea5e9;">Statutory Retention Lock</div>
-          <h3>⏳ Time-Locked Evidentiary Hold Protocol</h3>
+          <div class="card-badge" style="background: var(--success-bg); color: var(--forensic-emerald);">Statutory Retention Lock</div>
+          <h3>Time-Locked Evidentiary Hold Protocol</h3>
           <p class="card-desc">Lock evidence under litigation hold (FRCP 37(e)) or statutory retention mandates. Blocks all disposal and destruction until the timestamp expires or Court dismisses the hold.</p>
 
           <div id="holdStatusBanner" class="seal-banner unsealed">
-            <span id="holdStatusIcon">🟢</span>
+            <span id="holdStatusIcon" class="status-indicator active">Active</span>
             <span id="holdStatusText">Status: No Active Hold (Standard Retention)</span>
           </div>
 
@@ -382,8 +383,8 @@
           </div>
 
           <div class="btn-group">
-            <button id="btnPlaceHold" class="btn btn-primary">⏳ Place Evidentiary Hold</button>
-            <button id="btnReleaseHold" class="btn btn-outline" disabled>🔓 Release Hold (Court Only)</button>
+            <button id="btnPlaceHold" class="btn btn-primary">Place Evidentiary Hold</button>
+            <button id="btnReleaseHold" class="btn btn-outline" disabled>Release Hold (Court Only)</button>
           </div>
         </div>
       </div>
@@ -396,7 +397,7 @@
           <h2>Immutable Chain of Custody Audit Trail</h2>
           <p class="panel-desc">Cryptographically guaranteed chronological history reconstructed from on-chain event logs.</p>
         </div>
-        <button id="btnRefreshAudit" class="btn btn-outline">🔄 Refresh Trail</button>
+        <button id="btnRefreshAudit" class="btn btn-outline">Refresh Trail</button>
       </div>
 
       <div class="card">
@@ -461,7 +462,7 @@
         <!-- New Proposal Card -->
         <div class="card">
           <div class="card-badge">Council Proposer</div>
-          <h3>📝 Propose Role Action</h3>
+          <h3>Propose Role Action</h3>
           <p class="card-desc">Create a proposal to register or deregister a party. Your approval is recorded automatically.</p>
 
           <div class="form-group">
@@ -493,7 +494,7 @@
         <!-- Council Status & Threshold Card -->
         <div class="card">
           <div class="card-badge">Council Parameters</div>
-          <h3>🏛️ Active Council Policy</h3>
+          <h3>Active Council Policy</h3>
           <p class="card-desc">Prevents unilateral privilege escalation ("admin grants itself Investigator").</p>
 
           <div class="file-details" style="margin-top: 1rem;">
@@ -507,7 +508,7 @@
         <!-- Proposals List Card -->
         <div class="card" style="grid-column: 1 / -1; margin-top: 1rem;">
           <div class="card-badge">Pending & Recent</div>
-          <h3>📜 Council Proposals</h3>
+          <h3>Council Proposals</h3>
           <div id="councilProposalsList" class="permission-list" style="margin-top: 1rem;">
             <p style="color: var(--text-dim);">No active proposals.</p>
           </div>

@@ -1,0 +1,24 @@
+======================================================================
+METROPOLITAN CYBER CRIME INVESTIGATION DIVISION
+DIGITAL FORENSIC EVIDENCE LOG - EXHIBIT #E-01 (AUTHENTIC PRIMARY COPY)
+======================================================================
+Case Reference : FIR-2026-0042
+Acquisition DT : 2026-09-15T03:42:10Z
+Seizure Device : Server Blade 04 (Rack 12, DataCenter B)
+Hardware Serial: SVR-9942-DELL-XE
+Technician ID  : Officer R. Sharma (Badge #INV-9402)
+Write Blocker  : Tableau T8u Forensic USB 3.0 Bridge (S/N: 0834B-99)
+Imaging Tool   : Guymager v0.8.12 (Bit-for-bit raw dd format)
+
+ACQUISITION SUMMARY:
+Physical Sector Count  : 4,194,304 sectors
+Host Protected Area    : Checked - None detected
+Bad Sectors Encountered: 0
+
+EXTRACTED TIMESTAMP LOGS:
+[2026-09-15 01:14:02 UTC] ROOT_LOGIN: Success from 192.168.1.105 (MAC: 00:1A:2B:3C:4D:5E)
+[2026-09-15 01:15:33 UTC] DATABASE_EXPORT: dump_financial_records.sql (24.8 MB)
+[2026-09-15 01:18:20 UTC] SHUTDOWN_INITIATED: Override flag set by UID 0
+======================================================================
+LEGAL ATTESTATION: Bit-stream copy acquired under ISO/IEC 27037 standards.
+Anchored on ChainCustody distributed cryptographic ledger.

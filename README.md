@@ -143,7 +143,7 @@ npm run audit-suite
 ## Technical & Architecture Documentation
 
 For in-depth architectural diagrams, security proofs, regulatory compliance mappings, and technical FAQ, see:
-👉 [**docs/ARCHITECTURE.md**](docs/ARCHITECTURE.md)
+[**docs/ARCHITECTURE.md**](docs/ARCHITECTURE.md)
 
 ---
 

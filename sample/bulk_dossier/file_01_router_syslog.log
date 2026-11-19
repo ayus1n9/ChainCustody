@@ -1,0 +1,3 @@
+Sep 15 01:12:44 gateway-fw sshd[1042]: Accepted publickey for admin from 192.168.1.105 port 52311 ssh2: RSA SHA256:d8a2...
+Sep 15 01:13:01 gateway-fw kernel: [FW_ALLOW] IN=eth0 OUT=eth1 SRC=192.168.1.105 DST=10.0.4.22 PROTO=TCP DPT=5432
+Sep 15 01:18:15 gateway-fw sshd[1042]: Received disconnect from 192.168.1.105: 11: Normal shutdown

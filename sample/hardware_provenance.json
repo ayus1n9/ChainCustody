@@ -1,0 +1,21 @@
+{
+  "caseNumber": "FIR-2026-0042",
+  "evidenceId": 1,
+  "acquisitionHardware": {
+    "deviceModel": "Tableau Forensic USB 3.0 Bridge T8u",
+    "deviceSerial": "0834B-9921A",
+    "firmwareVersion": "v20.4.1",
+    "writeBlockState": "Hardware Read-Only Physical Lock Engaged"
+  },
+  "sourceMedia": {
+    "makeModel": "Dell PowerEdge Server Blade 04",
+    "serialNumber": "SVR-9942-DELL-XE",
+    "capacityBytes": 2147483648000
+  },
+  "complianceStandard": "ISO/IEC 27037:2012 Clause 6.3 - Digital Evidence Handling",
+  "forensicExaminer": {
+    "name": "Detective R. Sharma",
+    "badgeNumber": "INV-9402",
+    "department": "Cyber Crime Investigation Cell"
+  }
+}

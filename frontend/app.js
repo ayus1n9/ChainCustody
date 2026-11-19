@@ -8,31 +8,31 @@ const PERSONAS = {
   investigator: {
     role: "Investigator",
     address: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-    label: "👮 Police Investigator",
+    label: "Police Investigator",
     badgeClass: "badge-investigator"
   },
   lab: {
     role: "Lab",
     address: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
-    label: "🔬 Forensic Analyst",
+    label: "Forensic Analyst",
     badgeClass: "badge-lab"
   },
   court: {
     role: "Court",
     address: "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
-    label: "⚖️ Court Magistrate / Judge",
+    label: "Court Magistrate / Judge",
     badgeClass: "badge-court"
   },
   defense: {
     role: "Defense",
     address: "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
-    label: "🛡️ Defense Counsel",
+    label: "Defense Counsel",
     badgeClass: "badge-defense"
   },
   outsider: {
     role: "None",
     address: "0x9965507D1a55bcC2695C58ba16FB37d819B0A4df",
-    label: "👤 Unauthorized Outsider",
+    label: "Unauthorized Observer",
     badgeClass: "badge-outsider"
   }
 };
@@ -504,26 +504,30 @@ function updateHoldControls() {
 
   if (ev.isDisposed) {
     banner.className = "seal-banner disposed";
-    icon.textContent = "🔥";
+    icon.className = "status-indicator disposed";
+    icon.textContent = "EXPUNGED";
     text.textContent = "Status: Evidence Expunged (Holds Irrelevant)";
     btnPlace.disabled = true;
     btnRelease.disabled = true;
   } else if (isHoldActive) {
     banner.className = "seal-banner sealed";
-    icon.textContent = "⏳";
+    icon.className = "status-indicator hold";
+    icon.textContent = "HOLD ACTIVE";
     const dateStr = new Date(ev.holdUntil * 1000).toLocaleString();
     text.textContent = `Status: TIME-LOCKED HOLD ACTIVE until ${dateStr} ("${ev.holdReason}")`;
     btnPlace.disabled = false;
     btnRelease.disabled = false;
   } else if (ev.holdUntil > 0) {
     banner.className = "seal-banner unsealed";
-    icon.textContent = "🟢";
+    icon.className = "status-indicator active";
+    icon.textContent = "EXPIRED";
     text.textContent = `Status: Evidentiary Hold Expired (Was: "${ev.holdReason}")`;
     btnPlace.disabled = false;
     btnRelease.disabled = true;
   } else {
     banner.className = "seal-banner unsealed";
-    icon.textContent = "🟢";
+    icon.className = "status-indicator active";
+    icon.textContent = "ACTIVE";
     text.textContent = "Status: No Active Hold (Standard Retention)";
     btnPlace.disabled = false;
     btnRelease.disabled = true;
@@ -543,21 +547,24 @@ function updateDisposalControls() {
 
   if (ev.isDisposed) {
     banner.className = "seal-banner disposed";
-    icon.textContent = "🔥";
+    icon.className = "status-indicator disposed";
+    icon.textContent = "EXPUNGED";
     text.textContent = `Status: LAWFULLY EXPUNGED — Keys Shredded pursuant to Court Order`;
     btnProp.disabled = true;
     btnConf.disabled = true;
     btnCanc.disabled = true;
   } else if (ev.disposalProposer) {
     banner.className = "seal-banner pending";
-    icon.textContent = "⚠️";
+    icon.className = "status-indicator hold";
+    icon.textContent = "PENDING";
     text.textContent = `Status: Court Expungement Order Pending Custodian Concurrence ("${ev.disposalReason}")`;
     btnProp.disabled = true;
     btnConf.disabled = false;
     btnCanc.disabled = false;
   } else {
     banner.className = "seal-banner unsealed";
-    icon.textContent = "🟢";
+    icon.className = "status-indicator active";
+    icon.textContent = "ACTIVE";
     text.textContent = "Status: Active Record (Not Expunged)";
     btnProp.disabled = false;
     btnConf.disabled = true;
@@ -577,19 +584,22 @@ function updateSealControls() {
 
   if (ev.isDisposed) {
     banner.className = "seal-banner disposed";
-    icon.textContent = "🔥";
+    icon.className = "status-indicator disposed";
+    icon.textContent = "EXPUNGED";
     text.textContent = "Status: Evidence Expunged (Cannot Seal/Unseal)";
     btnSeal.disabled = true;
     btnUnseal.disabled = true;
   } else if (ev.isSealed) {
     banner.className = "seal-banner sealed";
-    icon.textContent = "🔒";
+    icon.className = "status-indicator sealed";
+    icon.textContent = "SEALED";
     text.textContent = `Status: JUDICIALLY SEALED — ${ev.sealReason || "Court Order"}`;
     btnSeal.disabled = true;
     btnUnseal.disabled = false;
   } else {
     banner.className = "seal-banner unsealed";
-    icon.textContent = "🟢";
+    icon.className = "status-indicator active";
+    icon.textContent = "ACTIVE";
     text.textContent = "Status: Unsealed (Active Chain of Custody)";
     btnSeal.disabled = false;
     btnUnseal.disabled = true;
@@ -667,21 +677,21 @@ function renderAuditTrail() {
   const timeline = document.getElementById("auditTimeline");
   timeline.innerHTML = "";
 
-  const icons = {
-    EvidenceRegistered: "📦",
-    EvidenceMetadataAnchored: "🏷️",
-    AccessGranted: "🔑",
-    AccessLogged: "👁️",
-    CustodyTransferred: "🔄",
-    AccessRevoked: "🚫",
-    EvidenceSealed: "⚖️",
-    EvidenceUnsealed: "🔓",
-    DisposalProposed: "📜",
-    DisposalCancelled: "↩️",
-    EvidenceDisposed: "🔥",
-    EvidentiaryHoldPlaced: "⏳",
-    EvidentiaryHoldReleased: "🔓",
-    CustodyTransferredWithSignature: "🔏"
+  const eventTags = {
+    EvidenceRegistered: "REGISTER",
+    EvidenceMetadataAnchored: "METADATA",
+    AccessGranted: "GRANT",
+    AccessLogged: "INSPECT",
+    CustodyTransferred: "TRANSFER",
+    AccessRevoked: "REVOKE",
+    EvidenceSealed: "SEAL",
+    EvidenceUnsealed: "UNSEAL",
+    DisposalProposed: "DISPOSAL-PROP",
+    DisposalCancelled: "DISPOSAL-CANCEL",
+    EvidenceDisposed: "EXPUNGE-EXEC",
+    EvidentiaryHoldPlaced: "HOLD-PLACE",
+    EvidentiaryHoldReleased: "HOLD-RELEASE",
+    CustodyTransferredWithSignature: "EIP712-XFER"
   };
 
   [...state.auditTrail].reverse().forEach((l, idx) => {
@@ -689,7 +699,7 @@ function renderAuditTrail() {
     item.className = "timeline-item";
 
     const actor = PERSONAS[l.by] ? PERSONAS[l.by].role : l.by;
-    const icon = icons[l.event] || "⚡";
+    const tag = eventTags[l.event] || "EVENT";
 
     item.innerHTML = `
       <div class="timeline-dot"></div>
@@ -697,7 +707,7 @@ function renderAuditTrail() {
         <span>Block #${l.block} &bull; ${l.time || 'Confirmed'}</span>
         <span>Tx: 0x${Math.random().toString(16).slice(2, 10)}...</span>
       </div>
-      <div class="timeline-title">${icon} ${l.event} by ${actor}</div>
+      <div class="timeline-title"><span class="event-tag">${tag}</span> ${l.event} &mdash; ${actor}</div>
       <div class="timeline-desc">${l.detail}</div>
     `;
     timeline.appendChild(item);
@@ -730,11 +740,11 @@ function renderCouncilProposals() {
 
     let statusBadge = "";
     if (p.executed) {
-      statusBadge = `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid var(--success); padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem;">✅ Executed</span>`;
+      statusBadge = `<span class="badge" style="background: var(--success-bg); color: var(--forensic-emerald); border: 1px solid var(--forensic-emerald); padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">EXECUTED</span>`;
     } else if (isExpired) {
-      statusBadge = `<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid var(--danger); padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem;">⌛ Expired</span>`;
+      statusBadge = `<span class="badge" style="background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger); padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">EXPIRED</span>`;
     } else {
-      statusBadge = `<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid #f59e0b; padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem;">⏳ Pending (${p.approvals.length}/${state.council.threshold})</span>`;
+      statusBadge = `<span class="badge" style="background: var(--warning-bg); color: var(--judicial-bronze); border: 1px solid var(--judicial-bronze); padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">PENDING (${p.approvals.length}/${state.council.threshold})</span>`;
     }
 
     const item = document.createElement("div");
@@ -822,7 +832,7 @@ function handleCouncilExecute(id) {
   });
   renderCouncilProposals();
   renderAuditTrail();
-  toast(`🏛️ Proposal #${id} executed! Role changes enforced on-chain.`, "success");
+  toast(`Proposal #${id} executed. Role changes enforced on-chain.`, "success");
 }
 
 // ---------------------------------------------------------------- Core Workflows
@@ -841,23 +851,23 @@ async function handleFileVerification(buffer, fileName, fileSize) {
   if (computedHash.toLowerCase() === ev.fileHash.toLowerCase()) {
     resultBox.className = "result-box verified";
     resultBox.innerHTML = `
-      <div class="result-icon">✅</div>
+      <div class="result-badge confirmed">VERIFIED</div>
       <div class="result-text">
-        <h4>INTEGRITY VERIFIED &bull; 100% BIT-FOR-BIT MATCH</h4>
+        <h4>INTEGRITY CONFIRMED &bull; 100% BIT-FOR-BIT MATCH</h4>
         <p>The cryptographic SHA-256 fingerprint matches the immutable record anchored on-chain.</p>
       </div>
     `;
-    toast("Integrity confirmed: File matches on-chain anchor!", "success");
+    toast("Integrity confirmed: File matches on-chain anchor.", "success");
   } else {
     resultBox.className = "result-box tampered";
     resultBox.innerHTML = `
-      <div class="result-icon">🚨</div>
+      <div class="result-badge alert">TAMPER DETECTED</div>
       <div class="result-text">
         <h4>TAMPER DETECTED &bull; CRYPTOGRAPHIC HASH MISMATCH</h4>
         <p>This file does not match the on-chain evidence hash. Evidence has been modified or forged!</p>
       </div>
     `;
-    toast("ALERT: File hash does not match blockchain anchor!", "error");
+    toast("ALERT: File hash does not match blockchain anchor.", "error");
   }
 }
 
@@ -1091,7 +1101,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     updatePersonaDisplay();
-    toast(`🔏 Gasless EIP-712 signature verified! Custody attested to ${toRole} (Nonce #${currentNonce})`, "success");
+    toast(`Gasless EIP-712 signature verified! Custody attested to ${toRole} (Nonce #${currentNonce})`, "success");
   });
 
   // Grant Access
@@ -1204,7 +1214,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     updatePersonaDisplay();
-    toast(`⚖️ Evidence #${currentEvidenceId} judicially sealed. Custody & access frozen.`, "warning");
+    toast(`Evidence #${currentEvidenceId} judicially sealed. Custody & access frozen.`, "warning");
   });
 
   document.getElementById("btnUnsealEvidence").addEventListener("click", () => {
@@ -1236,7 +1246,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     updatePersonaDisplay();
-    toast(`🔓 Evidence #${currentEvidenceId} unsealed and returned to active custody.`, "success");
+    toast(`Evidence #${currentEvidenceId} unsealed and returned to active custody.`, "success");
   });
 
   // Multi-Party Disposal & Key Shredding Handlers
@@ -1279,7 +1289,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     updatePersonaDisplay();
-    toast(`📜 Expungement proposed by Court. Awaiting concurrence from Custodian (${PERSONAS[ev.custodian].role}).`, "info");
+    toast(`Expungement proposed by Court. Awaiting concurrence from Custodian (${PERSONAS[ev.custodian].role}).`, "info");
   });
 
   document.getElementById("btnConfirmDisposal").addEventListener("click", () => {
@@ -1319,7 +1329,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     updatePersonaDisplay();
-    toast(`🔥 Evidence #${currentEvidenceId} successfully expunged. AES keys permanently shredded!`, "error");
+    toast(`Evidence #${currentEvidenceId} successfully expunged. Key material permanently shredded.`, "error");
   });
 
   document.getElementById("btnCancelDisposal").addEventListener("click", () => {
@@ -1346,7 +1356,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     updatePersonaDisplay();
-    toast(`↩️ Expungement proposal cancelled. Evidence remains active.`, "info");
+    toast(`Expungement proposal cancelled. Evidence remains active.`, "info");
   });
 
   // Evidentiary Hold Handlers
@@ -1388,7 +1398,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     updatePersonaDisplay();
-    toast(`⏳ Time-locked evidentiary hold active until ${new Date(targetTimestamp * 1000).toLocaleDateString()}. Evidence destruction blocked.`, "info");
+    toast(`Time-locked evidentiary hold active until ${new Date(targetTimestamp * 1000).toLocaleDateString()}. Evidence destruction blocked.`, "info");
   });
 
   document.getElementById("btnReleaseHold").addEventListener("click", () => {
@@ -1420,7 +1430,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     updatePersonaDisplay();
-    toast(`🔓 Evidentiary hold released by Court order. Standard retention resumed.`, "success");
+    toast(`Evidentiary hold released by Court order. Standard retention resumed.`, "success");
   });
 
   // Register Tab Drag & Drop
@@ -1537,21 +1547,21 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btnSim6a").addEventListener("click", () => {
     const el = document.getElementById("res6a");
     el.style.color = "var(--danger)";
-    el.textContent = "🚨 REJECTED: CID mismatch detected! The stored content has been altered in disk/IPFS.";
+    el.textContent = "REJECTED: CID mismatch detected! The stored content has been altered in disk/IPFS.";
     toast("Layer 1 defense: IPFS content addressing caught storage tamper!", "error");
   });
 
   document.getElementById("btnSim6b").addEventListener("click", () => {
     const el = document.getElementById("res6b");
     el.style.color = "var(--danger)";
-    el.textContent = "🚨 REJECTED: AES-256-GCM authentication tag verification failed. Ciphertext was altered!";
+    el.textContent = "REJECTED: AES-256-GCM authentication tag verification failed. Ciphertext was altered!";
     toast("Layer 2 defense: GCM authentication tag caught ciphertext tamper!", "error");
   });
 
   document.getElementById("btnSim6c").addEventListener("click", () => {
     const el = document.getElementById("res6c");
     el.style.color = "var(--danger)";
-    el.textContent = "🚨 REJECTED: Decrypted file SHA-256 does NOT match on-chain hash! Rogue substitution caught.";
+    el.textContent = "REJECTED: Decrypted file SHA-256 does NOT match on-chain hash! Rogue substitution caught.";
     toast("Layer 3 defense: Blockchain on-chain hash caught insider forgery!", "error");
   });
 
@@ -1765,10 +1775,10 @@ document.addEventListener("DOMContentLoaded", () => {
         badge.style.display = "inline-flex";
         if (data.verified) {
           badge.className = "witness-badge verified";
-          badge.innerHTML = `<span>🛡️ Witness: Verified (block #${data.latestHeight})</span>`;
+          badge.innerHTML = `<span>Witness: Verified (block #${data.latestHeight})</span>`;
         } else {
           badge.className = "witness-badge warning";
-          badge.innerHTML = `<span>⚠️ Witness: Unverified</span>`;
+          badge.innerHTML = `<span>Witness: Unverified</span>`;
         }
         return;
       }
@@ -1777,7 +1787,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (isDemoMode) {
       badge.style.display = "inline-flex";
       badge.className = "witness-badge verified";
-      badge.innerHTML = `<span>🛡️ Witness: Verified (block #16)</span>`;
+      badge.innerHTML = `<span>Witness: Verified (block #16)</span>`;
     }
   }
 

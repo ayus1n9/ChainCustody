@@ -1,24 +1,40 @@
 :root {
-  --bg-dark: #080d1a;
-  --bg-card: #0f172a;
-  --bg-card-hover: #17243e;
-  --bg-input: #1e293b;
-  --border: #223250;
-  --border-focus: #38bdf8;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --text-dim: #64748b;
-  --primary: #38bdf8;
-  --primary-hover: #0284c7;
-  --success: #10b981;
-  --success-bg: rgba(16, 185, 129, 0.12);
-  --danger: #ef4444;
-  --danger-bg: rgba(239, 68, 68, 0.12);
-  --warning: #f59e0b;
-  --radius: 12px;
-  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-  --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+  /* The Revised Palette */
+  --obsidian-navy: #0B1220;    /* App background */
+  --courtroom-slate: #162236;  /* Cards and panels */
+  --steel-blue: #22334A;       /* Inputs and hover surfaces */
+  --forensic-emerald: #26977B; /* Primary buttons and verification */
+  --judicial-bronze: #C5A46D;  /* Legal highlights and seals */
+  --document-white: #E5EAF0;   /* Main text and document content */
+
+  /* Functional Theme Mapping */
+  --bg-dark: var(--obsidian-navy);
+  --bg-card: var(--courtroom-slate);
+  --bg-card-hover: #1c2b42;
+  --bg-input: var(--steel-blue);
+  --border: #24354e;
+  --border-focus: var(--forensic-emerald);
+
+  --text-main: var(--document-white);
+  --text-muted: #9baec2;
+  --text-dim: #6d8095;
+
+  --primary: var(--forensic-emerald);
+  --primary-hover: #1e7d66;
+
+  --success: var(--forensic-emerald);
+  --success-bg: rgba(38, 151, 123, 0.15);
+
+  --danger: #d9534f;
+  --danger-bg: rgba(217, 83, 79, 0.15);
+
+  --warning: var(--judicial-bronze);
+  --warning-bg: rgba(197, 164, 109, 0.15);
+
+  --radius: 8px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 * {
@@ -41,7 +57,7 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 1.25rem 2.5rem;
-  background: rgba(15, 23, 42, 0.85);
+  background: rgba(22, 34, 54, 0.95);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
   position: sticky;
@@ -55,12 +71,16 @@ body {
   gap: 1rem;
 }
 
-.logo-icon {
-  font-size: 2rem;
-  background: rgba(56, 189, 248, 0.15);
-  padding: 0.5rem;
-  border-radius: 12px;
-  border: 1px solid rgba(56, 189, 248, 0.3);
+.logo-mark {
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  background: var(--steel-blue);
+  color: var(--judicial-bronze);
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--judicial-bronze);
+  font-family: var(--font-mono);
 }
 
 .header-brand h1 {
@@ -319,12 +339,16 @@ body {
 
 .drop-zone:hover, .drop-zone.dragover {
   border-color: var(--primary);
-  background: rgba(56, 189, 248, 0.05);
+  background: rgba(38, 151, 123, 0.05);
 }
 
-.drop-icon {
-  font-size: 2.5rem;
+.drop-icon-label {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 1.5px;
+  color: var(--primary);
   margin-bottom: 0.75rem;
+  font-weight: 700;
 }
 
 .highlight {
@@ -370,7 +394,7 @@ body {
   background: rgba(0, 0, 0, 0.35);
   padding: 0.2rem 0.5rem;
   border-radius: 4px;
-  color: #38bdf8;
+  color: var(--primary);
   word-break: break-all;
 }
 
@@ -408,25 +432,43 @@ body {
 }
 
 .result-box.idle {
-  background: rgba(148, 163, 184, 0.1);
-  border-color: rgba(148, 163, 184, 0.2);
+  background: rgba(34, 51, 74, 0.4);
+  border-color: var(--border);
   color: var(--text-muted);
 }
 
 .result-box.verified {
   background: var(--success-bg);
-  border-color: rgba(16, 185, 129, 0.4);
-  color: #10b981;
+  border-color: rgba(38, 151, 123, 0.4);
+  color: var(--success);
 }
 
 .result-box.tampered {
   background: var(--danger-bg);
-  border-color: rgba(239, 68, 68, 0.4);
-  color: #ef4444;
+  border-color: rgba(217, 83, 79, 0.4);
+  color: var(--danger);
 }
 
-.result-icon {
-  font-size: 2rem;
+.result-badge {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.result-badge.confirmed {
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1px solid var(--success);
+}
+
+.result-badge.alert {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid var(--danger);
 }
 
 .result-text h4 {
@@ -452,7 +494,7 @@ body {
   font-size: 0.875rem;
   font-weight: 600;
   padding: 0.65rem 1.2rem;
-  border-radius: 8px;
+  border-radius: var(--radius);
   cursor: pointer;
   border: none;
   display: inline-flex;
@@ -468,12 +510,12 @@ body {
 
 .btn-primary {
   background: var(--primary);
-  color: #080d1a;
+  color: #ffffff;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #7dd3fc;
-  box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+  background: var(--primary-hover);
+  box-shadow: 0 0 12px rgba(38, 151, 123, 0.35);
 }
 
 .btn-secondary {
@@ -771,13 +813,13 @@ body {
 
 /* Judicial Sealing */
 .btn-warning {
-  background: #f59e0b;
-  color: #0f172a;
+  background: var(--judicial-bronze);
+  color: #0B1220;
   font-weight: 700;
   border: none;
 }
 .btn-warning:hover {
-  background: #d97706;
+  background: #b5945e;
 }
 
 .seal-banner {
@@ -785,7 +827,7 @@ body {
   align-items: center;
   gap: 0.75rem;
   padding: 0.85rem 1.25rem;
-  border-radius: 8px;
+  border-radius: var(--radius);
   font-size: 0.9rem;
   font-weight: 600;
   margin-top: 1rem;
@@ -793,21 +835,21 @@ body {
 }
 
 .seal-banner.unsealed {
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  color: #34d399;
+  background: var(--success-bg);
+  border: 1px solid rgba(38, 151, 123, 0.4);
+  color: var(--forensic-emerald);
 }
 
 .seal-banner.sealed {
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid rgba(245, 158, 11, 0.5);
-  color: #fbbf24;
+  background: var(--warning-bg);
+  border: 1px solid rgba(197, 164, 109, 0.5);
+  color: var(--judicial-bronze);
 }
 
 .badge-sealed {
-  background: rgba(245, 158, 11, 0.2);
-  color: #f59e0b;
-  border: 1px solid rgba(245, 158, 11, 0.4);
+  background: rgba(197, 164, 109, 0.2);
+  color: var(--judicial-bronze);
+  border: 1px solid rgba(197, 164, 109, 0.4);
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-size: 0.75rem;
@@ -816,54 +858,52 @@ body {
 }
 
 .seal-banner.pending {
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px dashed rgba(245, 158, 11, 0.7);
-  color: #fbbf24;
+  background: rgba(197, 164, 109, 0.15);
+  border: 1px dashed rgba(197, 164, 109, 0.7);
+  color: var(--judicial-bronze);
 }
 
 .seal-banner.disposed {
-  background: rgba(239, 68, 68, 0.2);
-  border: 1px solid rgba(239, 68, 68, 0.6);
-  color: #f87171;
+  background: var(--danger-bg);
+  border: 1px solid rgba(217, 83, 79, 0.6);
+  color: var(--danger);
 }
 
 .btn-danger-shred {
-  background: #dc2626;
+  background: var(--danger);
   color: #fff;
   font-weight: 700;
   border: none;
 }
 .btn-danger-shred:hover {
-  background: #b91c1c;
+  background: #b53e3a;
 }
-
-
 
 /* Hardening & Security Banners */
 .simulation-banner {
-  background: #f59e0b;
-  color: #000000;
+  background: var(--judicial-bronze);
+  color: #0B1220;
   font-weight: 800;
   text-align: center;
-  padding: 0.6rem 1rem;
+  padding: 0.5rem 1rem;
   letter-spacing: 0.08em;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   text-transform: uppercase;
-  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.3);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
 .not-registered-banner {
-  background: rgba(245, 158, 11, 0.12);
-  border: 1px solid rgba(245, 158, 11, 0.4);
-  color: #fbbf24;
+  background: rgba(197, 164, 109, 0.12);
+  border: 1px solid rgba(197, 164, 109, 0.4);
+  color: var(--judicial-bronze);
   padding: 0.85rem 1.5rem;
   margin: 1.5rem 2.5rem 0 2.5rem;
   border-radius: var(--radius);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .witness-badge {
@@ -872,20 +912,68 @@ body {
   gap: 0.4rem;
   padding: 0.3rem 0.75rem;
   border-radius: 9999px;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-family: var(--font-mono);
   font-weight: 600;
   margin-top: 0.4rem;
 }
 
 .witness-badge.verified {
-  background: rgba(16, 185, 129, 0.15);
-  color: var(--success);
-  border: 1px solid var(--success);
+  background: var(--success-bg);
+  color: var(--forensic-emerald);
+  border: 1px solid var(--forensic-emerald);
 }
 
 .witness-badge.warning {
-  background: rgba(239, 68, 68, 0.15);
+  background: var(--danger-bg);
   color: var(--danger);
   border: 1px solid var(--danger);
+}
+
+/* Professional Forensic Status Indicators */
+.status-indicator {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.status-indicator.active {
+  background: var(--success-bg);
+  color: var(--forensic-emerald);
+  border: 1px solid var(--forensic-emerald);
+}
+
+.status-indicator.sealed {
+  background: var(--warning-bg);
+  color: var(--judicial-bronze);
+  border: 1px solid var(--judicial-bronze);
+}
+
+.status-indicator.hold {
+  background: var(--warning-bg);
+  color: var(--judicial-bronze);
+  border: 1px solid var(--judicial-bronze);
+}
+
+.status-indicator.disposed {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+.event-tag {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  background: var(--steel-blue);
+  color: var(--document-white);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  display: inline-block;
 }

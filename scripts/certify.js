@@ -166,11 +166,11 @@ async function main() {
 | **Initial Seizure & Registration Date** | ${creationDate} |
 | **Anchoring Smart Contract** | \`${contractAddress}\` |
 | **Active Custodian Authority** | \`${custodian}\` |
-| **Judicial Sealing Status** | **${isSealed ? "🔒 SEALED BY COURT ORDER" : "🟢 UNSEALED (ACTIVE CUSTODY)"}** |
+| **Judicial Sealing Status** | **${isSealed ? "SEALED BY COURT ORDER" : "UNSEALED (ACTIVE CUSTODY)"}** |
 | **Court Docket / Order Rationale** | *${sealReason}* |
-| **Statutory Retention / Evidentiary Hold** | **${isHoldActive ? `⏳ ACTIVE HOLD UNTIL ${holdDate}` : Number(holdUntil) > 0 ? "EXPIRED HOLD" : "🟢 NO HOLD ACTIVE"}** |
+| **Statutory Retention / Evidentiary Hold** | **${isHoldActive ? `ACTIVE HOLD UNTIL ${holdDate}` : Number(holdUntil) > 0 ? "EXPIRED HOLD" : "NO HOLD ACTIVE"}** |
 | **Evidentiary Hold Legal Basis** | *${Number(holdUntil) > 0 ? holdReason : "N/A"}* |
-| **Evidence Lifecycle / Expungement** | **${isDisposed ? "🔥 LAWFULLY DISPOSED (KEYS SHREDDED)" : "🟢 ACTIVE EVIDENCE RECORD"}** |
+| **Evidence Lifecycle / Expungement** | **${isDisposed ? "LAWFULLY DISPOSED (KEYS SHREDDED)" : "ACTIVE EVIDENCE RECORD"}** |
 
 ---
 
@@ -216,7 +216,7 @@ Status: LEGALLY ADMISSIBLE & VERIFIED UNALTERED
   fs.writeFileSync(outFile, certificateMd);
 
   console.log(`\n======================================================================`);
-  console.log(`📜 Official Court Certificate Generated for Evidence #${evidenceId}`);
+  console.log(`Official Court Certificate Generated for Evidence #${evidenceId}`);
   console.log(`   Location: ${outFile}`);
   console.log(`======================================================================\n`);
 }

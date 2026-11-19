@@ -195,7 +195,7 @@ async function verifyWitnessStatus(custodyProvider, witnessContractInstance, opt
 
 async function startDaemon() {
   console.log(`\n======================================================`);
-  console.log(`🛡️  ChainCustody Checkpoint Witness Service`);
+  console.log(`ChainCustody Checkpoint Witness Service`);
   console.log(`    Custody RPC : ${CUSTODY_RPC}`);
   console.log(`    Witness RPC : ${WITNESS_RPC}`);
   console.log(`    Frequency K : every ${WITNESS_K} blocks`);
@@ -222,7 +222,7 @@ async function startDaemon() {
     try {
       const res = await pollAndCheckpoint(custodyProvider, witnessContract);
       if (res.checkpointed) {
-        console.log(`[WITNESS] ✅ Checkpointed Block #${res.height} (${res.blockHash.slice(0, 14)}...) Tx: ${res.txHash}`);
+        console.log(`[WITNESS] [CHECKPOINT] Checkpointed Block #${res.height} (${res.blockHash.slice(0, 14)}...) Tx: ${res.txHash}`);
       }
     } catch (err) {
       console.error(`[WITNESS] Error in polling loop:`, err.message);
